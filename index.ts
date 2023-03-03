@@ -542,7 +542,7 @@ async function handleAuthRequest() {
 
   const proofReqSig: ZeroKnowledgeProofRequest = {
     id: 1,
-    circuitId: CircuitId.AtomicQueryMTPV2,
+    circuitId: CircuitId.AtomicQuerySigV2,
     optional: false,
     query: {
       allowedIssuers: ["*"],
@@ -587,22 +587,6 @@ async function handleAuthRequest() {
   console.log(credsWithIden3MTPProof);
   credentialWallet.saveAll(credsWithIden3MTPProof);
 
-  const proofReqMtp: ZeroKnowledgeProofRequest = {
-    id: 1,
-    circuitId: CircuitId.AtomicQueryMTPV2,
-    optional: false,
-    query: {
-      allowedIssuers: ["*"],
-      type: credentialRequest.type,
-      context:
-        "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-      credentialSubject: {
-        birthday: {
-          $lt: 20020101,
-        },
-      },
-    },
-  };
 
   var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
