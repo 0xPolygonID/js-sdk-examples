@@ -740,7 +740,6 @@ async function transitState() {
 
 async function main() {
   await identityCreation();
-
   await issueCredential();
   await transitState();
   await generateProofs();
