@@ -609,6 +609,132 @@ async function handleAuthRequest() {
   console.log(authHandlerRequest);
 }
 
+async function handleAuthRequestNoIssuerStateTransition() {
+  console.log("=============== handle auth request no issuer state transition ===============");
+
+  const dataStorage = initDataStorage();
+  const credentialWallet = await initCredentialWallet(dataStorage);
+  const identityWallet = await initIdentityWallet(
+    dataStorage,
+    credentialWallet
+  );
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const { did: userDID, credential: authBJJCredentialUser } =
+    await identityWallet.createIdentity(
+      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
+      {
+        method: core.DidMethod.Iden3,
+        blockchain: core.Blockchain.Polygon,
+        networkId: core.NetworkId.Mumbai,
+        rhsUrl,
+      }
+    );
+
+  console.log("=============== user did ===============");
+  console.log(userDID.toString());
+
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity(
+      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
+      {
+        method: core.DidMethod.Iden3,
+        blockchain: core.Blockchain.Polygon,
+        networkId: core.NetworkId.Mumbai,
+        rhsUrl,
+      }
+    );
+
+  const credentialRequest: CredentialRequest = {
+    credentialSchema:
+      "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+    type: "KYCAgeCredential",
+    credentialSubject: {
+      id: userDID.toString(),
+      birthday: 19960424,
+      documentType: 99,
+    },
+    expiration: 12345678888,
+  };
+  const credential = await identityWallet.issueCredential(
+    issuerDID,
+    credentialRequest,
+    "http://wallet.com/", // host url that will a prefix of credential identifier
+    {
+      withRHS: rhsUrl, // reverse hash service is used to check
+    }
+  );
+
+  dataStorage.credential.saveCredential(credential);
+
+  console.log(
+    "================= generate credentialAtomicSigV2 ==================="
+  );
+
+  const proofReqSig: ZeroKnowledgeProofRequest = {
+    id: 1,
+    circuitId: CircuitId.AtomicQuerySigV2,
+    optional: false,
+    query: {
+      allowedIssuers: ["*"],
+      type: credentialRequest.type,
+      context:
+        "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
+      credentialSubject: {
+        documentType: {
+          $eq: 99,
+        },
+      },
+    },
+  };
+
+  console.log("=================  credential auth request ===================");
+
+  // auth request
+
+  var authRequest: AuthorizationRequestMessage = {
+    id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
+    thid: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    from: issuerDID.toString(),
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
+      .AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    body: {
+      callbackUrl: "http://testcallback.com",
+      message: "message to sign",
+      scope: [proofReqSig],
+      reason: "verify age",
+    },
+  };
+  console.log(JSON.stringify(authRequest));
+
+  var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
+
+  // * on the user side */
+
+  console.log("============== handle auth request ==============");
+  const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
+  let pm = await initPackageManager(
+    authV2Data,
+    proofService.generateAuthV2Inputs.bind(proofService),
+    proofService.verifyState.bind(proofService)
+  );
+
+  const authHandler = new AuthHandler(pm, proofService, credentialWallet);
+  const authHandlerRequest =
+    await authHandler.handleAuthorizationRequestForGenesisDID(
+      userDID,
+      authRawRequest
+    );
+  console.log(authHandlerRequest);
+}
+
 async function initPackageManager(
   circuitData: CircuitData,
   prepareFn: AuthDataPrepareFunc,
@@ -739,11 +865,12 @@ async function transitState() {
 }
 
 async function main() {
-  await identityCreation();
-  await issueCredential();
-  await transitState();
-  await generateProofs();
-  await handleAuthRequest();
+  // await identityCreation();
+  // await issueCredential();
+  // await transitState();
+  // await generateProofs();
+  
+  await handleAuthRequestNoIssuerStateTransition();
 }
 (async function () {
   await main();
