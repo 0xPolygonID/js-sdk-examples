@@ -248,7 +248,7 @@ async function issueCredential() {
   console.log("===============  credential ===============");
   console.log(JSON.stringify(credential));
 
-  dataStorage.credential.saveCredential(credential);
+  await dataStorage.credential.saveCredential(credential);
 }
 
 async function generateProofs() {
@@ -313,7 +313,7 @@ async function generateProofs() {
     }
   );
 
-  dataStorage.credential.saveCredential(credential);
+  await dataStorage.credential.saveCredential(credential);
 
   console.log(
     "================= generate Iden3SparseMerkleTreeProof ======================="
@@ -506,7 +506,7 @@ async function handleAuthRequest() {
     }
   );
 
-  dataStorage.credential.saveCredential(credential);
+  await dataStorage.credential.saveCredential(credential);
 
   console.log(
     "================= generate Iden3SparseMerkleTreeProof ======================="
@@ -559,8 +559,6 @@ async function handleAuthRequest() {
 
   console.log("=================  credential auth request ===================");
 
-  // auth request
-
   var authRequest: AuthorizationRequestMessage = {
     id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     thid: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
@@ -606,7 +604,7 @@ async function handleAuthRequest() {
       userDID,
       authRawRequest
     );
-  console.log(authHandlerRequest);
+    console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
 async function handleAuthRequestNoIssuerStateTransition() {
@@ -671,7 +669,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
     }
   );
 
-  dataStorage.credential.saveCredential(credential);
+  await dataStorage.credential.saveCredential(credential);
 
   console.log(
     "================= generate credentialAtomicSigV2 ==================="
@@ -695,8 +693,6 @@ async function handleAuthRequestNoIssuerStateTransition() {
   };
 
   console.log("=================  credential auth request ===================");
-
-  // auth request
 
   var authRequest: AuthorizationRequestMessage = {
     id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
@@ -732,7 +728,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
       userDID,
       authRawRequest
     );
-  console.log(authHandlerRequest);
+  console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
 async function initPackageManager(
@@ -833,7 +829,7 @@ async function transitState() {
     }
   );
 
-  dataStorage.credential.saveCredential(credential);
+  await dataStorage.credential.saveCredential(credential);
 
   console.log(
     "================= generate Iden3SparseMerkleTreeProof ======================="
@@ -865,11 +861,13 @@ async function transitState() {
 }
 
 async function main() {
-  // await identityCreation();
-  // await issueCredential();
-  // await transitState();
-  // await generateProofs();
+  await identityCreation();
+  await issueCredential();
+  await transitState();
+  await generateProofs();
   
+  await handleAuthRequest();
+
   await handleAuthRequestNoIssuerStateTransition();
 }
 (async function () {
