@@ -45,6 +45,7 @@ import {
   PlainPacker,
   ICircuitStorage,
   core,
+  ZKPRequestWithCredential,
 } from "@0xpolygonid/js-sdk";
 import { ethers } from "ethers";
 import path from "path";
@@ -607,6 +608,191 @@ async function handleAuthRequest() {
     console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
+async function handleAuthRequestWithProfiles() {
+  console.log("=============== handle auth request with profiles ===============");
+
+  const dataStorage = initDataStorage();
+  const credentialWallet = await initCredentialWallet(dataStorage);
+  const identityWallet = await initIdentityWallet(
+    dataStorage,
+    credentialWallet
+  );
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const { did: userDID, credential: authBJJCredentialUser } =
+    await identityWallet.createIdentity(
+      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
+      {
+        method: core.DidMethod.Iden3,
+        blockchain: core.Blockchain.Polygon,
+        networkId: core.NetworkId.Mumbai,
+        rhsUrl,
+      }
+    );
+
+  console.log("=============== user did ===============");
+  console.log(userDID.toString());
+
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity(
+      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
+      {
+        method: core.DidMethod.Iden3,
+        blockchain: core.Blockchain.Polygon,
+        networkId: core.NetworkId.Mumbai,
+        rhsUrl,
+      }
+    );
+
+   // credential is issued on the profile!
+  const profileDID = await identityWallet.createProfile(userDID, 50, 'test verifier');
+
+  const credentialRequest: CredentialRequest = {
+    credentialSchema:
+      "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+    type: "KYCAgeCredential",
+    credentialSubject: {
+      id: profileDID.toString(),
+      birthday: 19960424,
+      documentType: 99,
+    },
+    expiration: 12345678888,
+  };
+  const credential = await identityWallet.issueCredential(
+    issuerDID,
+    credentialRequest,
+    "http://wallet.com/", // host url that will a prefix of credential identifier
+    {
+      withRHS: rhsUrl, // reverse hash service is used to check
+    }
+  );
+
+  await dataStorage.credential.saveCredential(credential);
+
+
+  console.log(
+    "================= generate credentialAtomicSigV2 ==================="
+  );
+
+  const proofReqSig: ZeroKnowledgeProofRequest = {
+    id: 1,
+    circuitId: CircuitId.AtomicQuerySigV2,
+    optional: false,
+    query: {
+      allowedIssuers: ["*"],
+      type: credentialRequest.type,
+      context:
+        "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
+      credentialSubject: {
+        documentType: {
+          $eq: 99,
+        },
+      },
+    },
+  };
+
+  console.log("=================  credential auth request ===================");
+
+  var authRequest: AuthorizationRequestMessage = {
+    id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
+    thid: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    from: issuerDID.toString(),
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
+      .AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    body: {
+      callbackUrl: "http://testcallback.com",
+      message: "message to sign",
+      scope: [proofReqSig],
+      reason: "verify age",
+    },
+  };
+  console.log(JSON.stringify(authRequest));
+
+
+
+  var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
+
+  // * on the user side */
+
+  console.log("============== handle auth request ==============");
+  const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
+  let pm = await initPackageManager(
+    authV2Data,
+    proofService.generateAuthV2Inputs.bind(proofService),
+    proofService.verifyState.bind(proofService)
+  );
+
+  const authHandler = new AuthHandler(pm, proofService, credentialWallet);
+   
+    // for the flow when profiles are used it's important to know the nonces of profiles
+    // for authentication profile and profile on which credential has been issued
+
+
+    const authR = await authHandler.parseAuthorizationRequest(authRawRequest);
+
+    // let's find credential for each request (emulation that we show it in the wallet ui)
+
+    const reqCreds: ZKPRequestWithCredential[] = [];
+
+    for (let index = 0; index < authR.body!.scope.length; index++) {
+      const zkpReq = authR.body!.scope[index];
+
+      const credsToChooseForZKPReq = await credentialWallet.findByQuery(zkpReq.query);
+
+      // filter credentials for subjects that are profiles of identity
+
+      const profiles = await dataStorage.identity.getProfilesByGenesisIdentifier(
+        userDID.toString()
+      );
+
+      // finds all credentials that belongs to genesis identity or profiles derived from it
+      const credsThatBelongToGenesisIdOrItsProfiles = credsToChooseForZKPReq.filter((cred) => {
+        const credentialSubjectId = cred.credentialSubject['id'] as string; // credential subject
+        return (
+          credentialSubjectId == userDID.toString() ||
+          profiles.some((p) => {
+            return p.id === credentialSubjectId;
+          })
+        );
+      });
+
+      // you can show user credential that can be used for request (emulation - user choice)
+      const chosenCredByUser = credsThatBelongToGenesisIdOrItsProfiles[0];
+
+      // get profile nonce that was used as a part of subject in the credential
+      const credentialSubjectProfileNonce =
+        chosenCredByUser.credentialSubject['id'] === userDID.toString()
+          ? 0
+          : profiles.find((p) => {
+              return p.id === chosenCredByUser.credentialSubject['id'];
+            })!.nonce;
+      console.log("credential profile nonce: ",credentialSubjectProfileNonce);      
+      reqCreds.push({ req: zkpReq, credential: chosenCredByUser, credentialSubjectProfileNonce }); // profile nonce of credential subject
+    }
+
+    // you can create new profile here for auth or if you want to login with genesis set to 0.
+
+    const authProfileNonce = 100;
+    console.log("auth profile nonce: ",authProfileNonce);      
+
+
+    const resp = await authHandler.generateAuthorizationResponse(
+      userDID,
+      authProfileNonce, // new profile for auth
+      authR,
+      reqCreds
+    );
+
+    console.log(resp);  
+}
+
 async function handleAuthRequestNoIssuerStateTransition() {
   console.log("=============== handle auth request no issuer state transition ===============");
 
@@ -867,6 +1053,9 @@ async function main() {
   await generateProofs();
   
   await handleAuthRequest();
+
+  await handleAuthRequestWithProfiles();
+
 
   await handleAuthRequestNoIssuerStateTransition();
 }
