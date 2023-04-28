@@ -46,6 +46,7 @@ import {
   ICircuitStorage,
   core,
   ZKPRequestWithCredential,
+  CredentialStatusType,
 } from "@0xpolygonid/js-sdk";
 import { ethers } from "ethers";
 import path from "path";
@@ -175,15 +176,15 @@ async function identityCreation() {
     credentialWallet
   );
 
-  const { did, credential } = await identityWallet.createIdentity(
-    "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-    {
-      method: core.DidMethod.Iden3,
-      blockchain: core.Blockchain.Polygon,
-      networkId: core.NetworkId.Mumbai,
-      rhsUrl,
-    }
-  );
+  const { did, credential } = await identityWallet.createIdentity({
+    method: core.DidMethod.Iden3,
+    blockchain: core.Blockchain.Polygon,
+    networkId: core.NetworkId.Mumbai,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
+  });
 
   console.log("=============== did ===============");
   console.log(did.toString());
@@ -202,29 +203,29 @@ async function issueCredential() {
   );
 
   const { did: userDID, credential: authBJJCredentialUser } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier, // url to check revocation status of auth bjj credential
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl, // url to check revocation status of auth bjj credential
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      }, // url to check revocation status of auth bjj credential
+    });
 
   const credentialRequest: CredentialRequest = {
     credentialSchema:
@@ -236,14 +237,14 @@ async function issueCredential() {
       documentType: 99,
     },
     expiration: 12345678888,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
   };
   const credential = await identityWallet.issueCredential(
     issuerDID,
-    credentialRequest,
-    "http://wallet.com/", // host url that will a prefix of credential identifier
-    {
-      withRHS: rhsUrl, // reverse hash service is used to check
-    }
+    credentialRequest
   );
 
   console.log("===============  credential ===============");
@@ -270,29 +271,29 @@ async function generateProofs() {
   );
 
   const { did: userDID, credential: authBJJCredentialUser } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   const credentialRequest: CredentialRequest = {
     credentialSchema:
@@ -304,14 +305,14 @@ async function generateProofs() {
       documentType: 99,
     },
     expiration: 12345678888,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
   };
   const credential = await identityWallet.issueCredential(
     issuerDID,
-    credentialRequest,
-    "http://wallet.com/", // host url that will a prefix of credential identifier
-    {
-      withRHS: rhsUrl, // reverse hash service is used to check
-    }
+    credentialRequest
   );
 
   await dataStorage.credential.saveCredential(credential);
@@ -369,14 +370,14 @@ async function generateProofs() {
     proofReqSig.query
   );
 
-  const { proof } = await proofService.generateProof(
+  const { proof, pub_signals } = await proofService.generateProof(
     proofReqSig,
     userDID,
     credsToChooseForZKPReq[0]
   );
 
   const sigProofOk = await proofService.verifyProof(
-    proof,
+    {proof, pub_signals },
     CircuitId.AtomicQuerySigV2
   );
   console.log("valid: ", sigProofOk);
@@ -421,7 +422,7 @@ async function generateProofs() {
   );
   console.log(JSON.stringify(proofMTP));
   const mtpProofOk = await proofService.verifyProof(
-    proof,
+    {proof, pub_signals },
     CircuitId.AtomicQueryMTPV2
   );
   console.log("valid: ", mtpProofOk);
@@ -432,14 +433,14 @@ async function generateProofs() {
     proofReqSig.query
   );
 
-  const { proof: proof2 } = await proofService.generateProof(
+  const { proof: proof2, pub_signals: pub_signals2 } = await proofService.generateProof(
     proofReqSig,
     userDID,
     credsToChooseForZKPReq2[0]
   );
 
   const sigProof2Ok = await proofService.verifyProof(
-    proof2,
+    { proof: proof2, pub_signals: pub_signals2 },
     CircuitId.AtomicQuerySigV2
   );
   console.log("valid: ", sigProof2Ok);
@@ -463,29 +464,29 @@ async function handleAuthRequest() {
   );
 
   const { did: userDID, credential: authBJJCredentialUser } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   const credentialRequest: CredentialRequest = {
     credentialSchema:
@@ -497,14 +498,14 @@ async function handleAuthRequest() {
       documentType: 99,
     },
     expiration: 12345678888,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
   };
   const credential = await identityWallet.issueCredential(
     issuerDID,
-    credentialRequest,
-    "http://wallet.com/", // host url that will a prefix of credential identifier
-    {
-      withRHS: rhsUrl, // reverse hash service is used to check
-    }
+    credentialRequest
   );
 
   await dataStorage.credential.saveCredential(credential);
@@ -586,7 +587,6 @@ async function handleAuthRequest() {
   console.log(credsWithIden3MTPProof);
   credentialWallet.saveAll(credsWithIden3MTPProof);
 
-
   var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
   // * on the user side */
@@ -605,11 +605,13 @@ async function handleAuthRequest() {
       userDID,
       authRawRequest
     );
-    console.log(JSON.stringify(authHandlerRequest, null, 2));
+  console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
 async function handleAuthRequestWithProfiles() {
-  console.log("=============== handle auth request with profiles ===============");
+  console.log(
+    "=============== handle auth request with profiles ==============="
+  );
 
   const dataStorage = initDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
@@ -626,32 +628,36 @@ async function handleAuthRequestWithProfiles() {
   );
 
   const { did: userDID, credential: authBJJCredentialUser } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
-   // credential is issued on the profile!
-  const profileDID = await identityWallet.createProfile(userDID, 50, 'test verifier');
+  // credential is issued on the profile!
+  const profileDID = await identityWallet.createProfile(
+    userDID,
+    50,
+    "test verifier"
+  );
 
   const credentialRequest: CredentialRequest = {
     credentialSchema:
@@ -663,18 +669,17 @@ async function handleAuthRequestWithProfiles() {
       documentType: 99,
     },
     expiration: 12345678888,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
   };
   const credential = await identityWallet.issueCredential(
     issuerDID,
-    credentialRequest,
-    "http://wallet.com/", // host url that will a prefix of credential identifier
-    {
-      withRHS: rhsUrl, // reverse hash service is used to check
-    }
+    credentialRequest
   );
 
   await dataStorage.credential.saveCredential(credential);
-
 
   console.log(
     "================= generate credentialAtomicSigV2 ==================="
@@ -715,8 +720,6 @@ async function handleAuthRequestWithProfiles() {
   };
   console.log(JSON.stringify(authRequest));
 
-
-
   var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
   // * on the user side */
@@ -730,31 +733,33 @@ async function handleAuthRequestWithProfiles() {
   );
 
   const authHandler = new AuthHandler(pm, proofService, credentialWallet);
-   
-    // for the flow when profiles are used it's important to know the nonces of profiles
-    // for authentication profile and profile on which credential has been issued
 
+  // for the flow when profiles are used it's important to know the nonces of profiles
+  // for authentication profile and profile on which credential has been issued
 
-    const authR = await authHandler.parseAuthorizationRequest(authRawRequest);
+  const authR = await authHandler.parseAuthorizationRequest(authRawRequest);
 
-    // let's find credential for each request (emulation that we show it in the wallet ui)
+  // let's find credential for each request (emulation that we show it in the wallet ui)
 
-    const reqCreds: ZKPRequestWithCredential[] = [];
+  const reqCreds: ZKPRequestWithCredential[] = [];
 
-    for (let index = 0; index < authR.body!.scope.length; index++) {
-      const zkpReq = authR.body!.scope[index];
+  for (let index = 0; index < authR.body!.scope.length; index++) {
+    const zkpReq = authR.body!.scope[index];
 
-      const credsToChooseForZKPReq = await credentialWallet.findByQuery(zkpReq.query);
+    const credsToChooseForZKPReq = await credentialWallet.findByQuery(
+      zkpReq.query
+    );
 
-      // filter credentials for subjects that are profiles of identity
+    // filter credentials for subjects that are profiles of identity
 
-      const profiles = await dataStorage.identity.getProfilesByGenesisIdentifier(
-        userDID.toString()
-      );
+    const profiles = await dataStorage.identity.getProfilesByGenesisIdentifier(
+      userDID.toString()
+    );
 
-      // finds all credentials that belongs to genesis identity or profiles derived from it
-      const credsThatBelongToGenesisIdOrItsProfiles = credsToChooseForZKPReq.filter((cred) => {
-        const credentialSubjectId = cred.credentialSubject['id'] as string; // credential subject
+    // finds all credentials that belongs to genesis identity or profiles derived from it
+    const credsThatBelongToGenesisIdOrItsProfiles =
+      credsToChooseForZKPReq.filter((cred) => {
+        const credentialSubjectId = cred.credentialSubject["id"] as string; // credential subject
         return (
           credentialSubjectId == userDID.toString() ||
           profiles.some((p) => {
@@ -763,38 +768,43 @@ async function handleAuthRequestWithProfiles() {
         );
       });
 
-      // you can show user credential that can be used for request (emulation - user choice)
-      const chosenCredByUser = credsThatBelongToGenesisIdOrItsProfiles[0];
+    // you can show user credential that can be used for request (emulation - user choice)
+    const chosenCredByUser = credsThatBelongToGenesisIdOrItsProfiles[0];
 
-      // get profile nonce that was used as a part of subject in the credential
-      const credentialSubjectProfileNonce =
-        chosenCredByUser.credentialSubject['id'] === userDID.toString()
-          ? 0
-          : profiles.find((p) => {
-              return p.id === chosenCredByUser.credentialSubject['id'];
-            })!.nonce;
-      console.log("credential profile nonce: ",credentialSubjectProfileNonce);      
-      reqCreds.push({ req: zkpReq, credential: chosenCredByUser, credentialSubjectProfileNonce }); // profile nonce of credential subject
-    }
+    // get profile nonce that was used as a part of subject in the credential
+    const credentialSubjectProfileNonce =
+      chosenCredByUser.credentialSubject["id"] === userDID.toString()
+        ? 0
+        : profiles.find((p) => {
+            return p.id === chosenCredByUser.credentialSubject["id"];
+          })!.nonce;
+    console.log("credential profile nonce: ", credentialSubjectProfileNonce);
+    reqCreds.push({
+      req: zkpReq,
+      credential: chosenCredByUser,
+      credentialSubjectProfileNonce,
+    }); // profile nonce of credential subject
+  }
 
-    // you can create new profile here for auth or if you want to login with genesis set to 0.
+  // you can create new profile here for auth or if you want to login with genesis set to 0.
 
-    const authProfileNonce = 100;
-    console.log("auth profile nonce: ",authProfileNonce);      
+  const authProfileNonce = 100;
+  console.log("auth profile nonce: ", authProfileNonce);
 
+  const resp = await authHandler.generateAuthorizationResponse(
+    userDID,
+    authProfileNonce, // new profile for auth
+    authR,
+    reqCreds
+  );
 
-    const resp = await authHandler.generateAuthorizationResponse(
-      userDID,
-      authProfileNonce, // new profile for auth
-      authR,
-      reqCreds
-    );
-
-    console.log(resp);  
+  console.log(resp);
 }
 
 async function handleAuthRequestNoIssuerStateTransition() {
-  console.log("=============== handle auth request no issuer state transition ===============");
+  console.log(
+    "=============== handle auth request no issuer state transition ==============="
+  );
 
   const dataStorage = initDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
@@ -811,29 +821,29 @@ async function handleAuthRequestNoIssuerStateTransition() {
   );
 
   const { did: userDID, credential: authBJJCredentialUser } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   const credentialRequest: CredentialRequest = {
     credentialSchema:
@@ -845,14 +855,14 @@ async function handleAuthRequestNoIssuerStateTransition() {
       documentType: 99,
     },
     expiration: 12345678888,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
   };
   const credential = await identityWallet.issueCredential(
     issuerDID,
-    credentialRequest,
-    "http://wallet.com/", // host url that will a prefix of credential identifier
-    {
-      withRHS: rhsUrl, // reverse hash service is used to check
-    }
+    credentialRequest
   );
 
   await dataStorage.credential.saveCredential(credential);
@@ -971,29 +981,29 @@ async function transitState() {
   console.log(PROTOCOL_CONSTANTS);
 
   const { did: userDID, credential: authBJJCredentialUser } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(
-      "http://wallet.com/", // this is url that will be a part of auth bjj credential identifier
-      {
-        method: core.DidMethod.Iden3,
-        blockchain: core.Blockchain.Polygon,
-        networkId: core.NetworkId.Mumbai,
-        rhsUrl,
-      }
-    );
+    await identityWallet.createIdentity({
+      method: core.DidMethod.Iden3,
+      blockchain: core.Blockchain.Polygon,
+      networkId: core.NetworkId.Mumbai,
+      revocationOpts: {
+        type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+        baseUrl: rhsUrl,
+      },
+    });
 
   const credentialRequest: CredentialRequest = {
     credentialSchema:
@@ -1005,14 +1015,14 @@ async function transitState() {
       documentType: 99,
     },
     expiration: 12345678888,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      baseUrl: rhsUrl,
+    },
   };
   const credential = await identityWallet.issueCredential(
     issuerDID,
-    credentialRequest,
-    "http://wallet.com/", // host url that will a prefix of credential identifier
-    {
-      withRHS: rhsUrl, // reverse hash service is used to check
-    }
+    credentialRequest
   );
 
   await dataStorage.credential.saveCredential(credential);
@@ -1051,11 +1061,10 @@ async function main() {
   await issueCredential();
   await transitState();
   await generateProofs();
-  
+
   await handleAuthRequest();
 
   await handleAuthRequestWithProfiles();
-
 
   await handleAuthRequestNoIssuerStateTransition();
 }
