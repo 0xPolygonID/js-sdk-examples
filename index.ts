@@ -47,6 +47,10 @@ import {
   core,
   ZKPRequestWithCredential,
   CredentialStatusType,
+  CredentialStatusResolverRegistry,
+  IssuerResolver,
+  RHSResolver,
+  OnChainResolver,
 } from "@0xpolygonid/js-sdk";
 import { ethers } from "ethers";
 import path from "path";
@@ -91,7 +95,22 @@ async function initIdentityWallet(
 async function initCredentialWallet(
   dataStorage: IDataStorage
 ): Promise<CredentialWallet> {
-  return new CredentialWallet(dataStorage);
+
+  const resolvers = new CredentialStatusResolverRegistry();
+  resolvers.register(
+    CredentialStatusType.SparseMerkleTreeProof,
+    new IssuerResolver()
+  );
+  resolvers.register(
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    new RHSResolver(dataStorage.states)
+  );
+  resolvers.register(
+    CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
+    new OnChainResolver([defaultEthConnectionConfig])
+  )
+
+  return new CredentialWallet(dataStorage, resolvers);
 }
 
 async function initCircuitStorage(): Promise<ICircuitStorage> {
@@ -182,7 +201,7 @@ async function identityCreation() {
     networkId: core.NetworkId.Mumbai,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   });
 
@@ -209,7 +228,7 @@ async function issueCredential() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -223,7 +242,7 @@ async function issueCredential() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       }, // url to check revocation status of auth bjj credential
     });
 
@@ -239,7 +258,7 @@ async function issueCredential() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -277,7 +296,7 @@ async function generateProofs() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -291,7 +310,7 @@ async function generateProofs() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -307,7 +326,7 @@ async function generateProofs() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -470,7 +489,7 @@ async function handleAuthRequest() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -484,7 +503,7 @@ async function handleAuthRequest() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -500,7 +519,7 @@ async function handleAuthRequest() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -634,7 +653,7 @@ async function handleAuthRequestWithProfiles() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -648,7 +667,7 @@ async function handleAuthRequestWithProfiles() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -671,7 +690,7 @@ async function handleAuthRequestWithProfiles() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -827,7 +846,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -841,7 +860,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -857,7 +876,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -987,7 +1006,7 @@ async function transitState() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -1001,7 +1020,7 @@ async function transitState() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        baseUrl: rhsUrl,
+        id: rhsUrl,
       },
     });
 
@@ -1017,7 +1036,7 @@ async function transitState() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      baseUrl: rhsUrl,
+      id: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
