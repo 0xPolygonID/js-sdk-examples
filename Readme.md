@@ -12,4 +12,8 @@ export CONTRACT_ADDRESS="..state v2 contract address in the mumbai network"
 export CIRCUITS_PATH="..path to the circuits folder"
 ```
 
-Run: `npm run start`
+Run:
+```bash
+npm i
+npm run start
+```
