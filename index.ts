@@ -95,7 +95,6 @@ async function initIdentityWallet(
 async function initCredentialWallet(
   dataStorage: IDataStorage
 ): Promise<CredentialWallet> {
-
   const resolvers = new CredentialStatusResolverRegistry();
   resolvers.register(
     CredentialStatusType.SparseMerkleTreeProof,
@@ -108,7 +107,7 @@ async function initCredentialWallet(
   resolvers.register(
     CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
     new OnChainResolver([defaultEthConnectionConfig])
-  )
+  );
 
   return new CredentialWallet(dataStorage, resolvers);
 }
@@ -181,7 +180,8 @@ async function initProofService(
     identityWallet,
     credentialWallet,
     circuitStorage,
-    stateStorage
+    stateStorage,
+    { ipfsNodeURL: "https://ipfs.io" }
   );
 }
 
@@ -396,7 +396,7 @@ async function generateProofs() {
   );
 
   const sigProofOk = await proofService.verifyProof(
-    {proof, pub_signals },
+    { proof, pub_signals },
     CircuitId.AtomicQuerySigV2
   );
   console.log("valid: ", sigProofOk);
@@ -441,7 +441,7 @@ async function generateProofs() {
   );
   console.log(JSON.stringify(proofMTP));
   const mtpProofOk = await proofService.verifyProof(
-    {proof, pub_signals },
+    { proof, pub_signals },
     CircuitId.AtomicQueryMTPV2
   );
   console.log("valid: ", mtpProofOk);
@@ -452,11 +452,12 @@ async function generateProofs() {
     proofReqSig.query
   );
 
-  const { proof: proof2, pub_signals: pub_signals2 } = await proofService.generateProof(
-    proofReqSig,
-    userDID,
-    credsToChooseForZKPReq2[0]
-  );
+  const { proof: proof2, pub_signals: pub_signals2 } =
+    await proofService.generateProof(
+      proofReqSig,
+      userDID,
+      credsToChooseForZKPReq2[0]
+    );
 
   const sigProof2Ok = await proofService.verifyProof(
     { proof: proof2, pub_signals: pub_signals2 },
