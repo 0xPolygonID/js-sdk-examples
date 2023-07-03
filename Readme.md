@@ -10,6 +10,10 @@
 ```bash
 cp .env.example .env
 ```
+3. Install dependencies
+```bash
+npm i 
+```
 
 `example.env`
 ```bash
@@ -26,8 +30,21 @@ WALLET_KEY=""
 ```
 
 ## Run
-
+You can run each example function independently:
 ```bash
-npm i
+npm run start -- [function]
+```
+The [function] should be replaced with one of the following options:
+
+- identityCreation  
+- issueCredential  
+- transitState 
+- generateProofs
+- handleAuthRequest
+- handleAuthRequestWithProfiles
+- handleAuthRequestNoIssuerStateTransition
+
+To run all examples
+```bash
 npm run start
 ```
