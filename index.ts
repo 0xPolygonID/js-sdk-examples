@@ -54,6 +54,8 @@ import {
 } from "@0xpolygonid/js-sdk";
 import { ethers } from "ethers";
 import path from "path";
+import dotenv from "dotenv";
+dotenv.config();
 
 const rhsUrl = process.env.RHS_URL as string;
 const rpcUrl = process.env.RPC_URL as string;

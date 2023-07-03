@@ -1,18 +1,32 @@
-Place actual circuits to folder e.g to`./circuits`  
-you can download the latest files from `https://iden3-circuits-bucket.s3.eu-west-1.amazonaws.com/latest.zip`
+# js-sdk-examples
 
-
-
-To run scripts them, please set following variables:
+## Setup
+1. Download the zk circuits into `./circuits` by running `dl_circuits.sh`. This will download the latest files from `https://iden3-circuits-bucket.s3.eu-west-1.amazonaws.com/latest.zip`
+```bash
+./dl_circuits.sh
 ```
-export WALLET_KEY="...key in hex format with matic balance"
-export RPC_URL="...url to polygon mumbai network rpc node"
-export RHS_URL="..reverse hash service url"
-export CONTRACT_ADDRESS="..state v2 contract address in the mumbai network"
-export CIRCUITS_PATH="..path to the circuits folder"
+2. Copy over the `.env.example` into `.env`  
+  You'll need to fill in `RPC_URL` and `WALLET_KEY` with your own endpoint and key respectively. The default env vars assume you will be using the Polygon Mumbai network.
+```bash
+cp .env.example .env
 ```
 
-Run:
+`example.env`
+```bash
+# reverse hash service url
+RHS_URL="https://rhs-staging.polygonid.me" 
+# state v2 contract address in the mumbai network
+CONTRACT_ADDRESS="0x134B1BE34911E39A8397ec6289782989729807a4"
+# path to the circuits folder
+CIRCUITS_PATH="./circuits" 
+# url to polygon mumbai network rpc node
+RPC_URL="" 
+# key in hex format with matic balance
+WALLET_KEY="" 
+```
+
+## Run
+
 ```bash
 npm i
 npm run start
