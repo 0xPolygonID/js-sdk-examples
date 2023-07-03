@@ -321,7 +321,7 @@ async function generateProofs() {
   )
 
   credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    proofReqSig.query
+    proofReqMtp.query
   );
   const { proof: proofMTP } = await proofService.generateProof(
     proofReqMtp,
