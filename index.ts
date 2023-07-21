@@ -484,7 +484,7 @@ async function handleAuthRequestWithProfiles() {
   const profileDID = await identityWallet.createProfile(
     userDID,
     50,
-    "test verifier"
+    issuerDID.string()
   );
 
   const credentialRequest = createKYCAgeCredential(userDID);
@@ -536,8 +536,15 @@ async function handleAuthRequestWithProfiles() {
 
   const authHandler = new AuthHandler(pm, proofService);
 
+  const authProfile = await identityWallet.getProfileByVerifier(authRequest.from);
+
+  // let's check that we didn't create profile for verifier
+  const authProfileDID = authProfile
+    ? core.DID.parse(authProfile.id)
+    : await identityWallet.createProfile(userDID, 100, authRequest.from);
+
   const resp = await authHandler.handleAuthorizationRequest(
-    userDID,
+    authProfileDID,
     authRawRequest
   );
 

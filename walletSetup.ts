@@ -42,6 +42,7 @@ import {
   ZKPPacker,
   PlainPacker,
   PackageManager,
+  AgentResolver,
 } from "@0xpolygonid/js-sdk";
 import path from "path";
 import dotenv from "dotenv";
@@ -112,6 +113,10 @@ export async function initCredentialWallet(
   resolvers.register(
     CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
     new OnChainResolver([defaultEthConnectionConfig])
+  );
+  resolvers.register(
+    CredentialStatusType.Iden3commRevocationStatusV1,
+    new AgentResolver()
   );
 
   return new CredentialWallet(dataStorage, resolvers);
@@ -186,7 +191,7 @@ export async function initProofService(
     credentialWallet,
     circuitStorage,
     stateStorage,
-    { ipfsNodeURL: "https://ipfs.io" }
+    { ipfsGatewayURL: "https://ipfs.io" }
   );
 }
 
