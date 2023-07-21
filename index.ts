@@ -1,24 +1,18 @@
-const getCurveFromName = require("ffjavascript").getCurveFromName;
 import {
   EthStateStorage,
   CredentialRequest,
   CircuitId,
   IIdentityWallet,
-  ICredentialWallet,
-  IDataStorage,
   ZeroKnowledgeProofRequest,
   AuthorizationRequestMessage,
   PROTOCOL_CONSTANTS,
   AuthHandler,
   core,
-  ZKPRequestWithCredential,
   CredentialStatusType,
+  ProofQuery
 } from "@0xpolygonid/js-sdk";
 
 import {
-  initDataStorage,
-  initIdentityWallet,
-  initCredentialWallet,
   initMemoryIdentityWallet,
   initCircuitStorage,
   initProofService,
@@ -285,14 +279,19 @@ async function generateProofs() {
     credentialRequest
   )
 
+  let query = proofReqSig.query as ProofQuery;
+
   let credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    proofReqSig.query
+    query
   );
 
   const { proof, pub_signals } = await proofService.generateProof(
     proofReqSig,
     userDID,
-    credsToChooseForZKPReq[0]
+    {
+      credential: credsToChooseForZKPReq[0],
+      skipRevocation: query?.skipClaimRevocationCheck ?? false
+    }
   );
 
   const sigProofOk = await proofService.verifyProof(
@@ -318,34 +317,39 @@ async function generateProofs() {
   const proofReqMtp: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQueryMTPV2,
     credentialRequest
-  )
+  );
 
   credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    proofReqMtp.query
+    query
   );
   const { proof: proofMTP } = await proofService.generateProof(
     proofReqMtp,
     userDID,
-    credsToChooseForZKPReq[0]
+    {
+      credential: credsToChooseForZKPReq[0],
+      skipRevocation: query?.skipClaimRevocationCheck ?? false
+    }
   );
+
   console.log(JSON.stringify(proofMTP));
   const mtpProofOk = await proofService.verifyProof(
     { proof, pub_signals },
     CircuitId.AtomicQueryMTPV2
   );
   console.log("valid: ", mtpProofOk);
-  // const curve = await getCurveFromName('bn128');
-  // curve.terminate();
 
   let credsToChooseForZKPReq2 = await credentialWallet.findByQuery(
-    proofReqSig.query
+    query
   );
 
   const { proof: proof2, pub_signals: pub_signals2 } =
     await proofService.generateProof(
       proofReqSig,
       userDID,
-      credsToChooseForZKPReq2[0]
+      {
+        credential: credsToChooseForZKPReq2[0],
+        skipRevocation: query?.skipClaimRevocationCheck ?? false
+      }
     );
 
   const sigProof2Ok = await proofService.verifyProof(
@@ -465,9 +469,9 @@ async function handleAuthRequest() {
     proofService.verifyState.bind(proofService)
   );
 
-  const authHandler = new AuthHandler(pm, proofService, credentialWallet);
+  const authHandler = new AuthHandler(pm, proofService);
   const authHandlerRequest =
-    await authHandler.handleAuthorizationRequestForGenesisDID(
+    await authHandler.handleAuthorizationRequest(
       userDID,
       authRawRequest
     );
@@ -555,70 +559,11 @@ async function handleAuthRequestWithProfiles() {
     proofService.verifyState.bind(proofService)
   );
 
-  const authHandler = new AuthHandler(pm, proofService, credentialWallet);
+  const authHandler = new AuthHandler(pm, proofService);
 
-  // for the flow when profiles are used it's important to know the nonces of profiles
-  // for authentication profile and profile on which credential has been issued
-
-  const authR = await authHandler.parseAuthorizationRequest(authRawRequest);
-
-  // let's find credential for each request (emulation that we show it in the wallet ui)
-
-  const reqCreds: ZKPRequestWithCredential[] = [];
-
-  for (let index = 0; index < authR.body!.scope.length; index++) {
-    const zkpReq = authR.body!.scope[index];
-
-    const credsToChooseForZKPReq = await credentialWallet.findByQuery(
-      zkpReq.query
-    );
-
-    // filter credentials for subjects that are profiles of identity
-
-    const profiles = await dataStorage.identity.getProfilesByGenesisIdentifier(
-      userDID.toString()
-    );
-
-    // finds all credentials that belongs to genesis identity or profiles derived from it
-    const credsThatBelongToGenesisIdOrItsProfiles =
-      credsToChooseForZKPReq.filter((cred) => {
-        const credentialSubjectId = cred.credentialSubject["id"] as string; // credential subject
-        return (
-          credentialSubjectId == userDID.toString() ||
-          profiles.some((p) => {
-            return p.id === credentialSubjectId;
-          })
-        );
-      });
-
-    // you can show user credential that can be used for request (emulation - user choice)
-    const chosenCredByUser = credsThatBelongToGenesisIdOrItsProfiles[0];
-
-    // get profile nonce that was used as a part of subject in the credential
-    const credentialSubjectProfileNonce =
-      chosenCredByUser.credentialSubject["id"] === userDID.toString()
-        ? 0
-        : profiles.find((p) => {
-            return p.id === chosenCredByUser.credentialSubject["id"];
-          })!.nonce;
-    console.log("credential profile nonce: ", credentialSubjectProfileNonce);
-    reqCreds.push({
-      req: zkpReq,
-      credential: chosenCredByUser,
-      credentialSubjectProfileNonce,
-    }); // profile nonce of credential subject
-  }
-
-  // you can create new profile here for auth or if you want to login with genesis set to 0.
-
-  const authProfileNonce = 100;
-  console.log("auth profile nonce: ", authProfileNonce);
-
-  const resp = await authHandler.generateAuthorizationResponse(
+  const resp = await authHandler.handleAuthorizationRequest(
     userDID,
-    authProfileNonce, // new profile for auth
-    authR,
-    reqCreds
+    authRawRequest
   );
 
   console.log(resp);
@@ -698,9 +643,9 @@ async function handleAuthRequestNoIssuerStateTransition() {
     proofService.verifyState.bind(proofService)
   );
 
-  const authHandler = new AuthHandler(pm, proofService, credentialWallet);
+  const authHandler = new AuthHandler(pm, proofService);
   const authHandlerRequest =
-    await authHandler.handleAuthorizationRequestForGenesisDID(
+    await authHandler.handleAuthorizationRequest(
       userDID,
       authRawRequest
     );
