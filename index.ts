@@ -9,14 +9,14 @@ import {
   AuthHandler,
   core,
   CredentialStatusType,
-  ProofQuery
+  ProofQuery,
 } from "@0xpolygonid/js-sdk";
 
 import {
   initMemoryIdentityWallet,
   initCircuitStorage,
   initProofService,
-  initPackageManager
+  initPackageManager,
 } from "./walletSetup";
 
 import { ethers } from "ethers";
@@ -25,7 +25,6 @@ dotenv.config();
 
 const rhsUrl = process.env.RHS_URL as string;
 const walletKey = process.env.WALLET_KEY as string;
-
 
 async function createIdentity(identityWallet: IIdentityWallet) {
   const { did, credential } = await identityWallet.createIdentity({
@@ -40,8 +39,8 @@ async function createIdentity(identityWallet: IIdentityWallet) {
 
   return {
     did,
-    credential
-  }
+    credential,
+  };
 }
 
 function createKYCAgeCredential(did: core.DID) {
@@ -50,7 +49,7 @@ function createKYCAgeCredential(did: core.DID) {
       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
     type: "KYCAgeCredential",
     credentialSubject: {
-      id: did.toString(),
+      id: did.string(),
       birthday: 19960424,
       documentType: 99,
     },
@@ -63,8 +62,10 @@ function createKYCAgeCredential(did: core.DID) {
   return credentialRequest;
 }
 
-function createKYCAgeCredentialRequest(circuitId: CircuitId, credentialRequest: CredentialRequest):ZeroKnowledgeProofRequest {
-
+function createKYCAgeCredentialRequest(
+  circuitId: CircuitId,
+  credentialRequest: CredentialRequest
+): ZeroKnowledgeProofRequest {
   const proofReqSig: ZeroKnowledgeProofRequest = {
     id: 1,
     circuitId: CircuitId.AtomicQuerySigV2,
@@ -99,7 +100,7 @@ function createKYCAgeCredentialRequest(circuitId: CircuitId, credentialRequest: 
     },
   };
 
-  switch(circuitId) {
+  switch (circuitId) {
     case CircuitId.AtomicQuerySigV2:
       return proofReqSig;
     case CircuitId.AtomicQueryMTPV2:
@@ -116,7 +117,7 @@ async function identityCreation() {
   const { did, credential } = await createIdentity(identityWallet);
 
   console.log("=============== did ===============");
-  console.log(did.toString());
+  console.log(did.string());
   console.log("=============== Auth BJJ credential ===============");
   console.log(JSON.stringify(credential));
 }
@@ -130,7 +131,7 @@ async function issueCredential() {
     await createIdentity(identityWallet);
 
   console.log("=============== user did ===============");
-  console.log(userDID.toString());
+  console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await createIdentity(identityWallet);
@@ -150,10 +151,8 @@ async function issueCredential() {
 async function transitState() {
   console.log("=============== transit state ===============");
 
-  let { dataStorage,
-    credentialWallet,
-    identityWallet
-  } = await initMemoryIdentityWallet();
+  let { dataStorage, credentialWallet, identityWallet } =
+    await initMemoryIdentityWallet();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -167,7 +166,7 @@ async function transitState() {
     await createIdentity(identityWallet);
 
   console.log("=============== user did ===============");
-  console.log(userDID.toString());
+  console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await createIdentity(identityWallet);
@@ -212,10 +211,8 @@ async function transitState() {
 async function generateProofs() {
   console.log("=============== generate proofs ===============");
 
-  let { dataStorage, 
-    credentialWallet, 
-    identityWallet 
-  } = await initMemoryIdentityWallet();
+  let { dataStorage, credentialWallet, identityWallet } =
+    await initMemoryIdentityWallet();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -229,7 +226,7 @@ async function generateProofs() {
     await createIdentity(identityWallet);
 
   console.log("=============== user did ===============");
-  console.log(userDID.toString());
+  console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await createIdentity(identityWallet);
@@ -277,7 +274,7 @@ async function generateProofs() {
   const proofReqSig: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQuerySigV2,
     credentialRequest
-  )
+  );
 
   const { proof, pub_signals } = await proofService.generateProof(
     proofReqSig,
@@ -322,10 +319,7 @@ async function generateProofs() {
   console.log("valid: ", mtpProofOk);
 
   const { proof: proof2, pub_signals: pub_signals2 } =
-    await proofService.generateProof(
-      proofReqSig,
-      userDID
-    );
+    await proofService.generateProof(proofReqSig, userDID);
 
   const sigProof2Ok = await proofService.verifyProof(
     { proof: proof2, pub_signals: pub_signals2 },
@@ -337,10 +331,8 @@ async function generateProofs() {
 async function handleAuthRequest() {
   console.log("=============== handle auth request ===============");
 
-  let { dataStorage,
-    credentialWallet,
-    identityWallet
-  } = await initMemoryIdentityWallet();
+  let { dataStorage, credentialWallet, identityWallet } =
+    await initMemoryIdentityWallet();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -354,7 +346,7 @@ async function handleAuthRequest() {
     await createIdentity(identityWallet);
 
   console.log("=============== user did ===============");
-  console.log(userDID.toString());
+  console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await createIdentity(identityWallet);
@@ -402,7 +394,7 @@ async function handleAuthRequest() {
   const proofReqSig: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQuerySigV2,
     credentialRequest
-  )
+  );
 
   console.log("=================  credential auth request ===================");
 
@@ -410,7 +402,7 @@ async function handleAuthRequest() {
     id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     thid: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
-    from: issuerDID.toString(),
+    from: issuerDID.string(),
     type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
       .AUTHORIZATION_REQUEST_MESSAGE_TYPE,
     body: {
@@ -445,11 +437,10 @@ async function handleAuthRequest() {
   );
 
   const authHandler = new AuthHandler(pm, proofService);
-  const authHandlerRequest =
-    await authHandler.handleAuthorizationRequest(
-      userDID,
-      authRawRequest
-    );
+  const authHandlerRequest = await authHandler.handleAuthorizationRequest(
+    userDID,
+    authRawRequest
+  );
   console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
@@ -458,10 +449,8 @@ async function handleAuthRequestWithProfiles() {
     "=============== handle auth request with profiles ==============="
   );
 
-  let { dataStorage,
-    credentialWallet,
-    identityWallet
-  } = await initMemoryIdentityWallet();
+  let { dataStorage, credentialWallet, identityWallet } =
+    await initMemoryIdentityWallet();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -475,7 +464,7 @@ async function handleAuthRequestWithProfiles() {
     await createIdentity(identityWallet);
 
   console.log("=============== user did ===============");
-  console.log(userDID.toString());
+  console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await createIdentity(identityWallet);
@@ -487,7 +476,7 @@ async function handleAuthRequestWithProfiles() {
     issuerDID.string()
   );
 
-  const credentialRequest = createKYCAgeCredential(userDID);
+  const credentialRequest = createKYCAgeCredential(profileDID);
   const credential = await identityWallet.issueCredential(
     issuerDID,
     credentialRequest
@@ -502,15 +491,17 @@ async function handleAuthRequestWithProfiles() {
   const proofReqSig: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQuerySigV2,
     credentialRequest
-  )
+  );
 
   console.log("=================  credential auth request ===================");
+  const verifierDID =
+    "did:example:123#JUvpllMEYUZ2joO59UNui_XYDqxVqiFLLAJ8klWuPBw";
 
   var authRequest: AuthorizationRequestMessage = {
     id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     thid: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
-    from: issuerDID.toString(),
+    from: verifierDID,
     type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
       .AUTHORIZATION_REQUEST_MESSAGE_TYPE,
     body: {
@@ -536,7 +527,9 @@ async function handleAuthRequestWithProfiles() {
 
   const authHandler = new AuthHandler(pm, proofService);
 
-  const authProfile = await identityWallet.getProfileByVerifier(authRequest.from);
+  const authProfile = await identityWallet.getProfileByVerifier(
+    authRequest.from
+  );
 
   // let's check that we didn't create profile for verifier
   const authProfileDID = authProfile
@@ -556,10 +549,8 @@ async function handleAuthRequestNoIssuerStateTransition() {
     "=============== handle auth request no issuer state transition ==============="
   );
 
-  let { dataStorage,
-    credentialWallet,
-    identityWallet
-  } = await initMemoryIdentityWallet();
+  let { dataStorage, credentialWallet, identityWallet } =
+    await initMemoryIdentityWallet();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -573,7 +564,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
     await createIdentity(identityWallet);
 
   console.log("=============== user did ===============");
-  console.log(userDID.toString());
+  console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await createIdentity(identityWallet);
@@ -593,7 +584,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
   const proofReqSig: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQuerySigV2,
     credentialRequest
-  )
+  );
 
   console.log("=================  credential auth request ===================");
 
@@ -601,7 +592,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
     id: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     thid: "fe6354fe-3db2-48c2-a779-e39c2dda8d90",
     typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
-    from: issuerDID.toString(),
+    from: issuerDID.string(),
     type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE
       .AUTHORIZATION_REQUEST_MESSAGE_TYPE,
     body: {
@@ -626,35 +617,34 @@ async function handleAuthRequestNoIssuerStateTransition() {
   );
 
   const authHandler = new AuthHandler(pm, proofService);
-  const authHandlerRequest =
-    await authHandler.handleAuthorizationRequest(
-      userDID,
-      authRawRequest
-    );
+  const authHandlerRequest = await authHandler.handleAuthorizationRequest(
+    userDID,
+    authRawRequest
+  );
   console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
 async function main(choice: String) {
   switch (choice) {
-    case 'identityCreation':
+    case "identityCreation":
       await identityCreation();
       break;
-    case 'issueCredential':
+    case "issueCredential":
       await issueCredential();
       break;
-    case 'transitState':
+    case "transitState":
       await transitState();
       break;
-    case 'generateProofs':
+    case "generateProofs":
       await generateProofs();
       break;
-    case 'handleAuthRequest':
+    case "handleAuthRequest":
       await handleAuthRequest();
       break;
-    case 'handleAuthRequestWithProfiles':
+    case "handleAuthRequestWithProfiles":
       await handleAuthRequestWithProfiles();
       break;
-    case 'handleAuthRequestNoIssuerStateTransition':
+    case "handleAuthRequestNoIssuerStateTransition":
       await handleAuthRequestNoIssuerStateTransition();
       break;
     default:
