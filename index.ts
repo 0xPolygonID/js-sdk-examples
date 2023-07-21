@@ -279,19 +279,9 @@ async function generateProofs() {
     credentialRequest
   )
 
-  const sigQuery = proofReqSig.query as ProofQuery;
-
-  let credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    sigQuery
-  );
-
   const { proof, pub_signals } = await proofService.generateProof(
     proofReqSig,
-    userDID,
-    {
-      credential: credsToChooseForZKPReq[0],
-      skipRevocation: sigQuery?.skipClaimRevocationCheck ?? false
-    }
+    userDID
   );
 
   const sigProofOk = await proofService.verifyProof(
@@ -319,18 +309,9 @@ async function generateProofs() {
     credentialRequest
   );
 
-  const mptQuery = proofReqMtp.query as ProofQuery;
-
-  credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    mptQuery
-  );
   const { proof: proofMTP } = await proofService.generateProof(
     proofReqMtp,
-    userDID,
-    {
-      credential: credsToChooseForZKPReq[0],
-      skipRevocation: mptQuery?.skipClaimRevocationCheck ?? false
-    }
+    userDID
   );
 
   console.log(JSON.stringify(proofMTP));
@@ -340,18 +321,10 @@ async function generateProofs() {
   );
   console.log("valid: ", mtpProofOk);
 
-  let credsToChooseForZKPReq2 = await credentialWallet.findByQuery(
-    sigQuery
-  );
-
   const { proof: proof2, pub_signals: pub_signals2 } =
     await proofService.generateProof(
       proofReqSig,
-      userDID,
-      {
-        credential: credsToChooseForZKPReq2[0],
-        skipRevocation: sigQuery?.skipClaimRevocationCheck ?? false
-      }
+      userDID
     );
 
   const sigProof2Ok = await proofService.verifyProof(
