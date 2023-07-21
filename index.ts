@@ -279,10 +279,10 @@ async function generateProofs() {
     credentialRequest
   )
 
-  let query = proofReqSig.query as ProofQuery;
+  const sigQuery = proofReqSig.query as ProofQuery;
 
   let credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    query
+    sigQuery
   );
 
   const { proof, pub_signals } = await proofService.generateProof(
@@ -290,7 +290,7 @@ async function generateProofs() {
     userDID,
     {
       credential: credsToChooseForZKPReq[0],
-      skipRevocation: query?.skipClaimRevocationCheck ?? false
+      skipRevocation: sigQuery?.skipClaimRevocationCheck ?? false
     }
   );
 
@@ -319,15 +319,17 @@ async function generateProofs() {
     credentialRequest
   );
 
+  const mptQuery = proofReqMtp.query as ProofQuery;
+
   credsToChooseForZKPReq = await credentialWallet.findByQuery(
-    query
+    mptQuery
   );
   const { proof: proofMTP } = await proofService.generateProof(
     proofReqMtp,
     userDID,
     {
       credential: credsToChooseForZKPReq[0],
-      skipRevocation: query?.skipClaimRevocationCheck ?? false
+      skipRevocation: mptQuery?.skipClaimRevocationCheck ?? false
     }
   );
 
@@ -339,7 +341,7 @@ async function generateProofs() {
   console.log("valid: ", mtpProofOk);
 
   let credsToChooseForZKPReq2 = await credentialWallet.findByQuery(
-    query
+    sigQuery
   );
 
   const { proof: proof2, pub_signals: pub_signals2 } =
@@ -348,7 +350,7 @@ async function generateProofs() {
       userDID,
       {
         credential: credsToChooseForZKPReq2[0],
-        skipRevocation: query?.skipClaimRevocationCheck ?? false
+        skipRevocation: sigQuery?.skipClaimRevocationCheck ?? false
       }
     );
 
