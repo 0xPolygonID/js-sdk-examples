@@ -83,7 +83,7 @@ export async function initIdentityWallet(
   return new IdentityWallet(kms, dataStorage, credentialWallet);
 }
 
-export async function initMemoryIdentityWallet() {
+export async function initInMemoryDataStorageAndWallets() {
   const dataStorage = initDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
   const identityWallet = await initIdentityWallet(

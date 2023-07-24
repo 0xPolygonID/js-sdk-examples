@@ -13,7 +13,7 @@ import {
 } from "@0xpolygonid/js-sdk";
 
 import {
-  initMemoryIdentityWallet,
+  initInMemoryDataStorageAndWallets,
   initCircuitStorage,
   initProofService,
   initPackageManager,
@@ -113,7 +113,7 @@ function createKYCAgeCredentialRequest(
 async function identityCreation() {
   console.log("=============== key creation ===============");
 
-  let { identityWallet } = await initMemoryIdentityWallet();
+  let { identityWallet } = await initInMemoryDataStorageAndWallets();
   const { did, credential } = await createIdentity(identityWallet);
 
   console.log("=============== did ===============");
@@ -125,7 +125,7 @@ async function identityCreation() {
 async function issueCredential() {
   console.log("=============== issue credential ===============");
 
-  let { dataStorage, identityWallet } = await initMemoryIdentityWallet();
+  let { dataStorage, identityWallet } = await initInMemoryDataStorageAndWallets();
 
   const { did: userDID, credential: authBJJCredentialUser } =
     await createIdentity(identityWallet);
@@ -152,7 +152,7 @@ async function transitState() {
   console.log("=============== transit state ===============");
 
   let { dataStorage, credentialWallet, identityWallet } =
-    await initMemoryIdentityWallet();
+    await initInMemoryDataStorageAndWallets();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -212,7 +212,7 @@ async function generateProofs() {
   console.log("=============== generate proofs ===============");
 
   let { dataStorage, credentialWallet, identityWallet } =
-    await initMemoryIdentityWallet();
+    await initInMemoryDataStorageAndWallets();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -332,7 +332,7 @@ async function handleAuthRequest() {
   console.log("=============== handle auth request ===============");
 
   let { dataStorage, credentialWallet, identityWallet } =
-    await initMemoryIdentityWallet();
+    await initInMemoryDataStorageAndWallets();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -450,7 +450,7 @@ async function handleAuthRequestWithProfiles() {
   );
 
   let { dataStorage, credentialWallet, identityWallet } =
-    await initMemoryIdentityWallet();
+    await initInMemoryDataStorageAndWallets();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -550,7 +550,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
   );
 
   let { dataStorage, credentialWallet, identityWallet } =
-    await initMemoryIdentityWallet();
+    await initInMemoryDataStorageAndWallets();
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
