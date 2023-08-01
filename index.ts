@@ -9,7 +9,6 @@ import {
   AuthHandler,
   core,
   CredentialStatusType,
-  ProofQuery,
 } from "@0xpolygonid/js-sdk";
 
 import {
