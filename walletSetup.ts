@@ -20,10 +20,7 @@ import {
   Profile,
   W3CCredential,
   EthConnectionConfig,
-  CircuitStorage,
   CircuitData,
-  FSKeyLoader,
-  CircuitId,
   IStateStorage,
   ProofService,
   ICircuitStorage,
@@ -42,6 +39,8 @@ import {
   ZKPPacker,
   PlainPacker,
   PackageManager,
+  AgentResolver,
+  FSCircuitStorage,
 } from "@0xpolygonid/js-sdk";
 import path from "path";
 import dotenv from "dotenv";
@@ -82,7 +81,7 @@ export async function initIdentityWallet(
   return new IdentityWallet(kms, dataStorage, credentialWallet);
 }
 
-export async function initMemoryIdentityWallet() {
+export async function initInMemoryDataStorageAndWallets() {
   const dataStorage = initDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
   const identityWallet = await initIdentityWallet(
@@ -113,67 +112,16 @@ export async function initCredentialWallet(
     CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
     new OnChainResolver([defaultEthConnectionConfig])
   );
+  resolvers.register(
+    CredentialStatusType.Iden3commRevocationStatusV1,
+    new AgentResolver()
+  );
 
   return new CredentialWallet(dataStorage, resolvers);
 }
 
 export async function initCircuitStorage(): Promise<ICircuitStorage> {
-  const circuitStorage = new CircuitStorage(
-    new InMemoryDataSource<CircuitData>()
-  );
-
-  const loader = new FSKeyLoader(path.join(__dirname, circuitsFolder));
-
-  await circuitStorage.saveCircuitData(CircuitId.AuthV2, {
-    circuitId: CircuitId.AuthV2,
-    wasm: await loader.load(`${CircuitId.AuthV2.toString()}/circuit.wasm`),
-    provingKey: await loader.load(
-      `${CircuitId.AuthV2.toString()}/circuit_final.zkey`
-    ),
-    verificationKey: await loader.load(
-      `${CircuitId.AuthV2.toString()}/verification_key.json`
-    ),
-  });
-
-  await circuitStorage.saveCircuitData(CircuitId.AtomicQuerySigV2, {
-    circuitId: CircuitId.AtomicQuerySigV2,
-    wasm: await loader.load(
-      `${CircuitId.AtomicQuerySigV2.toString()}/circuit.wasm`
-    ),
-    provingKey: await loader.load(
-      `${CircuitId.AtomicQuerySigV2.toString()}/circuit_final.zkey`
-    ),
-    verificationKey: await loader.load(
-      `${CircuitId.AtomicQuerySigV2.toString()}/verification_key.json`
-    ),
-  });
-
-  await circuitStorage.saveCircuitData(CircuitId.StateTransition, {
-    circuitId: CircuitId.StateTransition,
-    wasm: await loader.load(
-      `${CircuitId.StateTransition.toString()}/circuit.wasm`
-    ),
-    provingKey: await loader.load(
-      `${CircuitId.StateTransition.toString()}/circuit_final.zkey`
-    ),
-    verificationKey: await loader.load(
-      `${CircuitId.StateTransition.toString()}/verification_key.json`
-    ),
-  });
-
-  await circuitStorage.saveCircuitData(CircuitId.AtomicQueryMTPV2, {
-    circuitId: CircuitId.AtomicQueryMTPV2,
-    wasm: await loader.load(
-      `${CircuitId.AtomicQueryMTPV2.toString()}/circuit.wasm`
-    ),
-    provingKey: await loader.load(
-      `${CircuitId.AtomicQueryMTPV2.toString()}/circuit_final.zkey`
-    ),
-    verificationKey: await loader.load(
-      `${CircuitId.AtomicQueryMTPV2.toString()}/verification_key.json`
-    ),
-  });
-  return circuitStorage;
+  return new FSCircuitStorage({ dirname: path.join(__dirname, circuitsFolder) });
 }
 export async function initProofService(
   identityWallet: IIdentityWallet,
@@ -186,7 +134,7 @@ export async function initProofService(
     credentialWallet,
     circuitStorage,
     stateStorage,
-    { ipfsNodeURL: "https://ipfs.io" }
+    { ipfsGatewayURL: "https://ipfs.io" }
   );
 }
 
@@ -204,7 +152,7 @@ export async function initPackageManager(
     [
       mapKey,
       {
-        key: circuitData.verificationKey,
+        key: circuitData.verificationKey!,
         verificationFn,
       },
     ],
@@ -213,8 +161,8 @@ export async function initPackageManager(
   const provingParamMap: Map<string, ProvingParams> = new Map();
   provingParamMap.set(mapKey, {
     dataPreparer: authInputsHandler,
-    provingKey: circuitData.provingKey,
-    wasm: circuitData.wasm,
+    provingKey: circuitData.provingKey!,
+    wasm: circuitData.wasm!,
   });
 
   const mgr: IPackageManager = new PackageManager();
