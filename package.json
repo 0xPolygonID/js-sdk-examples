@@ -14,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@0xpolygonid/js-sdk": "^1.0.0",
+    "@0xpolygonid/js-sdk": "https://github.com/0xPolygonID/js-sdk#feature/pid-1037",
     "@iden3/js-jwz": "^1.0.0",
     "dotenv": "^16.3.1",
     "ethers": "^5.7.2"
