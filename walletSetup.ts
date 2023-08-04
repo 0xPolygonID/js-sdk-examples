@@ -15,6 +15,7 @@ import {
   InMemoryDataSource,
   InMemoryMerkleTreeStorage,
   InMemoryPrivateKeyStore,
+  EncryptedKeyStore,
   KMS,
   KmsKeyType,
   Profile,
@@ -73,7 +74,9 @@ export async function initIdentityWallet(
   dataStorage: IDataStorage,
   credentialWallet: ICredentialWallet
 ): Promise<IIdentityWallet> {
-  const memoryKeyStore = new InMemoryPrivateKeyStore();
+  const memoryKeyStore = new EncryptedKeyStore<InMemoryPrivateKeyStore>(InMemoryPrivateKeyStore, {
+    password: 'p@ssword1'
+  });
   const bjjProvider = new BjjProvider(KmsKeyType.BabyJubJub, memoryKeyStore);
   const kms = new KMS();
   kms.registerKeyProvider(KmsKeyType.BabyJubJub, bjjProvider);
