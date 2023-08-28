@@ -14,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@0xpolygonid/js-sdk": "file:./0xpolygonid-js-sdk-1.0.0-beta.9.tgz",
+    "@0xpolygonid/js-sdk": "1.0.0-beta.9",
     "@iden3/js-jwz": "^1.0.0-beta.2",
     "ethers": "^5.7.2"
   },

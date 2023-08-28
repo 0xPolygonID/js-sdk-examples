@@ -47,10 +47,6 @@ import {
   core,
   ZKPRequestWithCredential,
   CredentialStatusType,
-  CredentialStatusResolverRegistry,
-  IssuerResolver,
-  RHSResolver,
-  OnChainResolver,
 } from "@0xpolygonid/js-sdk";
 import { ethers } from "ethers";
 import path from "path";
@@ -96,21 +92,7 @@ async function initCredentialWallet(
   dataStorage: IDataStorage
 ): Promise<CredentialWallet> {
 
-  const resolvers = new CredentialStatusResolverRegistry();
-  resolvers.register(
-    CredentialStatusType.SparseMerkleTreeProof,
-    new IssuerResolver()
-  );
-  resolvers.register(
-    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-    new RHSResolver(dataStorage.states)
-  );
-  resolvers.register(
-    CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
-    new OnChainResolver([defaultEthConnectionConfig])
-  )
-
-  return new CredentialWallet(dataStorage, resolvers);
+  return new CredentialWallet(dataStorage);
 }
 
 async function initCircuitStorage(): Promise<ICircuitStorage> {
@@ -201,7 +183,7 @@ async function identityCreation() {
     networkId: core.NetworkId.Mumbai,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   });
 
@@ -228,7 +210,7 @@ async function issueCredential() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -242,7 +224,7 @@ async function issueCredential() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       }, // url to check revocation status of auth bjj credential
     });
 
@@ -258,7 +240,7 @@ async function issueCredential() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -296,7 +278,7 @@ async function generateProofs() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -310,7 +292,7 @@ async function generateProofs() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -326,7 +308,7 @@ async function generateProofs() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -482,19 +464,23 @@ async function handleAuthRequest() {
     circuitStorage
   );
 
+  const seedPhrase = new TextEncoder().encode('seedseedseedseedseedseedseedhome');
+
   const { did: userDID, credential: authBJJCredentialUser } =
     await identityWallet.createIdentity({
       method: core.DidMethod.Iden3,
       blockchain: core.Blockchain.Polygon,
       networkId: core.NetworkId.Mumbai,
+      seed:seedPhrase,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
   console.log("=============== user did ===============");
   console.log(userDID.toString());
+
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await identityWallet.createIdentity({
@@ -503,11 +489,11 @@ async function handleAuthRequest() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
-  const credentialRequest: CredentialRequest = {
+    const credentialRequest: CredentialRequest = {
     credentialSchema:
       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
     type: "KYCAgeCredential",
@@ -519,7 +505,7 @@ async function handleAuthRequest() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -653,7 +639,7 @@ async function handleAuthRequestWithProfiles() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -667,7 +653,7 @@ async function handleAuthRequestWithProfiles() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -690,7 +676,7 @@ async function handleAuthRequestWithProfiles() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -846,7 +832,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -860,7 +846,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -876,7 +862,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -1006,7 +992,7 @@ async function transitState() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -1020,7 +1006,7 @@ async function transitState() {
       networkId: core.NetworkId.Mumbai,
       revocationOpts: {
         type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-        id: rhsUrl,
+        baseUrl: rhsUrl,
       },
     });
 
@@ -1036,7 +1022,7 @@ async function transitState() {
     expiration: 12345678888,
     revocationOpts: {
       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl,
+      baseUrl: rhsUrl,
     },
   };
   const credential = await identityWallet.issueCredential(
@@ -1076,16 +1062,16 @@ async function transitState() {
 }
 
 async function main() {
-  await identityCreation();
-  await issueCredential();
-  await transitState();
-  await generateProofs();
+  // await identityCreation();
+  // await issueCredential();
+  // await transitState();
+  // await generateProofs();
 
   await handleAuthRequest();
 
-  await handleAuthRequestWithProfiles();
+  // await handleAuthRequestWithProfiles();
 
-  await handleAuthRequestNoIssuerStateTransition();
+  // await handleAuthRequestNoIssuerStateTransition();
 }
 (async function () {
   await main();
