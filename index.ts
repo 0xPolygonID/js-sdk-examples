@@ -20,6 +20,7 @@ import {
 
 import { ethers } from "ethers";
 import dotenv from "dotenv";
+import { generateRequestData } from "./request";
 dotenv.config();
 
 const rhsUrl = process.env.RHS_URL as string;
@@ -646,6 +647,10 @@ async function main(choice: String) {
     case "handleAuthRequestNoIssuerStateTransition":
       await handleAuthRequestNoIssuerStateTransition();
       break;
+    case "generateRequestData":
+      await generateRequestData();
+      break;
+
     default:
       // default run all
       await identityCreation();
@@ -655,6 +660,8 @@ async function main(choice: String) {
       await handleAuthRequest();
       await handleAuthRequestWithProfiles();
       await handleAuthRequestNoIssuerStateTransition();
+      await generateRequestData();
+
   }
 }
 
