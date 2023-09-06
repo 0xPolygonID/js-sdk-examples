@@ -1,5 +1,5 @@
 import { byteEncoder, createSchemaHash } from "@0xpolygonid/js-sdk";
-import { Path, getDocumentLoader } from "@iden3/js-jsonld-merklization";
+import { Path, getDocumentLoader, Merklizer } from "@iden3/js-jsonld-merklization";
 
 const pathToCredentialSubject =
     "https://www.w3.org/2018/credentials#credentialSubject";
@@ -7,7 +7,7 @@ const pathToCredentialSubject =
 
 export async function generateRequestData() {
 
-    const url = `https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld`;
+    const url = `https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v101.json-ld`;
     const type = "KYCAgeCredential";
     const fieldName = "birthday"; // in form of field.field2.field3 field must be present in the credential subject
 
@@ -26,5 +26,17 @@ export async function generateRequestData() {
 
     console.log("path", pathBigInt.toString());
 
+    // you can hash the value according to the datatype (that's how it is stored in core claim structure)
+
+    const fieldInfo = {
+        pathToField: 'KYCEmployee.position',
+        value: 'developer',
+        wantHash: '957410455271905675920624030785024750144198809104092676617070098470852489834'
+    };
+
+    const datatype = await Path.newTypeFromContext(ldJSONStr, fieldInfo.pathToField);
+    console.log(datatype); // make sure it is http://www.w3.org/2001/XMLSchema#string
+    const hashedValue = await Merklizer.hashValue(datatype, fieldInfo.value)
+    console.log(hashedValue);
 
 }
