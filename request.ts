@@ -30,8 +30,7 @@ export async function generateRequestData() {
 
     const fieldInfo = {
         pathToField: 'KYCEmployee.position',
-        value: 'developer',
-        wantHash: '957410455271905675920624030785024750144198809104092676617070098470852489834'
+        value: 'developer'
     };
 
     const datatype = await Path.newTypeFromContext(ldJSONStr, fieldInfo.pathToField);
