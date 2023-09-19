@@ -437,11 +437,11 @@ async function handleAuthRequest() {
   );
 
   const authHandler = new AuthHandler(pm, proofService);
-  const authHandlerRequest = await authHandler.handleAuthorizationRequest(
+  const authResponse = await authHandler.handleAuthorizationRequest(
     userDID,
     authRawRequest
   );
-  console.log(JSON.stringify(authHandlerRequest, null, 2));
+  console.log(JSON.stringify(authResponse, null, 2));
 }
 
 async function handleAuthRequestWithProfiles() {
