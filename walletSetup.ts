@@ -41,16 +41,20 @@ import {
   PackageManager,
   AgentResolver,
   FSCircuitStorage,
+  AbstractPrivateKeyStore,
+  IdentityMerkleTreeMetaInformation,
 } from "@0xpolygonid/js-sdk";
 import path from "path";
 import dotenv from "dotenv";
 dotenv.config();
+import {MongoDataSourceFactory,MerkleTreeMongodDBStorage} from "@0xpolygonid/mongo-storage"
+
 
 const rpcUrl = process.env.RPC_URL as string;
 const contractAddress = process.env.CONTRACT_ADDRESS as string;
 const circuitsFolder = process.env.CIRCUITS_PATH as string;
 
-export function initDataStorage(): IDataStorage {
+export function initInMemoryDataStorage(): IDataStorage {
   let conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
   conf.url = rpcUrl;
@@ -69,12 +73,41 @@ export function initDataStorage(): IDataStorage {
   return dataStorage;
 }
 
+export async function initMongoDataStorage(): Promise<IDataStorage> {
+
+  const url = "mongodb://localhost:27017"
+  const dbName = 'mongodb-sdk-example';
+
+  let conf: EthConnectionConfig = defaultEthConnectionConfig;
+  conf.contractAddress = contractAddress;
+  conf.url = rpcUrl;
+
+
+  var dataStorage = {
+    credential: new CredentialStorage( await MongoDataSourceFactory<W3CCredential>(url,dbName,'credentials')),
+    identity: new IdentityStorage(
+      await MongoDataSourceFactory<Identity>(url, dbName, 'polygonid_identity'),
+      await MongoDataSourceFactory<Profile>(url, dbName, 'polygonid_profile')
+    ),
+    mt: new MerkleTreeMongodDBStorage(
+      40,
+      await MongoDataSourceFactory<IdentityMerkleTreeMetaInformation[]>(url, dbName, 'polygonid_metastore'),
+      await MongoDataSourceFactory<any>(url, dbName, 'polygonid_binding_store'),
+      url
+    ),
+
+    states: new EthStateStorage(defaultEthConnectionConfig),
+  };
+
+  return dataStorage;
+}
+
 export async function initIdentityWallet(
   dataStorage: IDataStorage,
-  credentialWallet: ICredentialWallet
+  credentialWallet: ICredentialWallet,
+  keyStore: AbstractPrivateKeyStore
 ): Promise<IIdentityWallet> {
-  const memoryKeyStore = new InMemoryPrivateKeyStore();
-  const bjjProvider = new BjjProvider(KmsKeyType.BabyJubJub, memoryKeyStore);
+  const bjjProvider = new BjjProvider(KmsKeyType.BabyJubJub, keyStore);
   const kms = new KMS();
   kms.registerKeyProvider(KmsKeyType.BabyJubJub, bjjProvider);
 
@@ -82,11 +115,14 @@ export async function initIdentityWallet(
 }
 
 export async function initInMemoryDataStorageAndWallets() {
-  const dataStorage = initDataStorage();
+  const dataStorage = initInMemoryDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
+  const memoryKeyStore = new InMemoryPrivateKeyStore();
+
   const identityWallet = await initIdentityWallet(
     dataStorage,
-    credentialWallet
+    credentialWallet,
+    memoryKeyStore
   );
 
   return {
@@ -95,6 +131,26 @@ export async function initInMemoryDataStorageAndWallets() {
     identityWallet,
   };
 }
+
+export async function initMongoDataStorageAndWallets() {
+  const dataStorage =  await initMongoDataStorage();
+  const credentialWallet = await initCredentialWallet(dataStorage);
+  const memoryKeyStore = new InMemoryPrivateKeyStore();
+
+  const identityWallet = await initIdentityWallet(
+    dataStorage,
+    credentialWallet,
+    memoryKeyStore
+  );
+
+  return {
+    dataStorage,
+    credentialWallet,
+    identityWallet,
+  };
+}
+
+
 
 export async function initCredentialWallet(
   dataStorage: IDataStorage
