@@ -42,7 +42,9 @@ import {
   AgentResolver,
   FSCircuitStorage,
 } from "@0xpolygonid/js-sdk";
+import { MongoDBStorage, MongoDBStorageFactory, MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/mongo-storage'
 import path from "path";
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -50,21 +52,36 @@ const rpcUrl = process.env.RPC_URL as string;
 const contractAddress = process.env.CONTRACT_ADDRESS as string;
 const circuitsFolder = process.env.CIRCUITS_PATH as string;
 
-export function initDataStorage(): IDataStorage {
+export async function initDataStorage(): Promise<IDataStorage> {
   let conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
   conf.url = rpcUrl;
 
-  var dataStorage = {
-    credential: new CredentialStorage(new InMemoryDataSource<W3CCredential>()),
-    identity: new IdentityStorage(
-      new InMemoryDataSource<Identity>(),
-      new InMemoryDataSource<Profile>()
-    ),
-    mt: new InMemoryMerkleTreeStorage(40),
+  const mongod = await MongoMemoryServer.create();
+  const url = mongod.getUri();
+  const dbName = 'sdk-example11';
+  const dataStorage = {
+      credential: new CredentialStorage(
+        await MongoDataSourceFactory<W3CCredential>(url, dbName, 'credentials')
+      ),
+      identity: new IdentityStorage(
+        await MongoDataSourceFactory<Identity>(url, dbName, 'identity'),
+        await MongoDataSourceFactory<Profile>(url, dbName, 'profile')
+      ),
+      mt: await MerkleTreeMongodDBStorage.setup(url, dbName, 40),
+      states: new EthStateStorage(defaultEthConnectionConfig)
+    };
 
-    states: new EthStateStorage(defaultEthConnectionConfig),
-  };
+  // var dataStorage = {
+  //   credential: new CredentialStorage(new InMemoryDataSource<W3CCredential>()),
+  //   identity: new IdentityStorage(
+  //     new InMemoryDataSource<Identity>(),
+  //     new InMemoryDataSource<Profile>()
+  //   ),
+  //   mt: new InMemoryMerkleTreeStorage(40),
+
+  //   states: new EthStateStorage(defaultEthConnectionConfig),
+  // };
 
   return dataStorage;
 }
@@ -82,7 +99,7 @@ export async function initIdentityWallet(
 }
 
 export async function initInMemoryDataStorageAndWallets() {
-  const dataStorage = initDataStorage();
+  const dataStorage = await initDataStorage();
   const credentialWallet = await initCredentialWallet(dataStorage);
   const identityWallet = await initIdentityWallet(
     dataStorage,
