@@ -84,8 +84,8 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
   var dataStorage = {
     credential: new CredentialStorage( await MongoDataSourceFactory<W3CCredential>(url,dbName,'credentials')),
     identity: new IdentityStorage(
-      await MongoDataSourceFactory<Identity>(url, dbName, 'polygonid_identity'),
-      await MongoDataSourceFactory<Profile>(url, dbName, 'polygonid_profile')
+      await MongoDataSourceFactory<Identity>(url, dbName, 'identity'),
+      await MongoDataSourceFactory<Profile>(url, dbName, 'profile')
     ),
     mt: await MerkleTreeMongodDBStorage.setup(url, dbName, 40),
     states: new EthStateStorage(defaultEthConnectionConfig),
