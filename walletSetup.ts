@@ -1,4 +1,3 @@
-const getCurveFromName = require("ffjavascript").getCurveFromName;
 import { proving } from "@iden3/js-jwz";
 import {
   BjjProvider,
@@ -42,7 +41,6 @@ import {
   AgentResolver,
   FSCircuitStorage,
   AbstractPrivateKeyStore,
-  IdentityMerkleTreeMetaInformation,
 } from "@0xpolygonid/js-sdk";
 import path from "path";
 import dotenv from "dotenv";
@@ -89,17 +87,11 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
       await MongoDataSourceFactory<Identity>(url, dbName, 'polygonid_identity'),
       await MongoDataSourceFactory<Profile>(url, dbName, 'polygonid_profile')
     ),
-    mt: new MerkleTreeMongodDBStorage(
-      40,
-      await MongoDataSourceFactory<IdentityMerkleTreeMetaInformation[]>(url, dbName, 'polygonid_metastore'),
-      await MongoDataSourceFactory<any>(url, dbName, 'polygonid_binding_store'),
-      url
-    ),
-
+    mt: await MerkleTreeMongodDBStorage.setup(url, dbName, 40),
     states: new EthStateStorage(defaultEthConnectionConfig),
   };
 
-  return dataStorage;
+  return dataStorage as unknown as IDataStorage;
 }
 
 export async function initIdentityWallet(
