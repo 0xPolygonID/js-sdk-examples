@@ -300,7 +300,7 @@ async function generateProofs() {
     );
 
   console.log(credsWithIden3MTPProof);
-  credentialWallet.saveAll(credsWithIden3MTPProof);
+  await credentialWallet.saveAll(credsWithIden3MTPProof);
 
   const proofReqMtp: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQueryMTPV2,
@@ -420,7 +420,7 @@ async function generateProofsMongo() {
     );
 
   console.log(credsWithIden3MTPProof);
-  credentialWallet.saveAll(credsWithIden3MTPProof);
+  await credentialWallet.saveAll(credsWithIden3MTPProof);
 
   const proofReqMtp: ZeroKnowledgeProofRequest = createKYCAgeCredentialRequest(
     CircuitId.AtomicQueryMTPV2,
@@ -544,7 +544,7 @@ async function handleAuthRequest() {
     );
 
   console.log(credsWithIden3MTPProof);
-  credentialWallet.saveAll(credsWithIden3MTPProof);
+  await credentialWallet.saveAll(credsWithIden3MTPProof);
 
   var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
@@ -840,7 +840,7 @@ async function handleAuthRequestMongo() {
     );
 
   console.log(credsWithIden3MTPProof);
-  credentialWallet.saveAll(credsWithIden3MTPProof);
+  await credentialWallet.saveAll(credsWithIden3MTPProof);
 
   var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
