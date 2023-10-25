@@ -1,4 +1,4 @@
-import { proving } from "@iden3/js-jwz";
+import { proving } from '@iden3/js-jwz';
 import {
   BjjProvider,
   CredentialStorage,
@@ -40,15 +40,13 @@ import {
   PackageManager,
   AgentResolver,
   FSCircuitStorage,
-  AbstractPrivateKeyStore,
-} from "@0xpolygonid/js-sdk";
-import path from "path";
-import dotenv from "dotenv";
+  AbstractPrivateKeyStore
+} from '@0xpolygonid/js-sdk';
+import path from 'path';
+import dotenv from 'dotenv';
 dotenv.config();
-import {
-  MongoDataSourceFactory,
-  MerkleTreeMongodDBStorage,
-} from "@0xpolygonid/mongo-storage";
+import { MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/mongo-storage';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const rpcUrl = process.env.RPC_URL as string;
 const contractAddress = process.env.CONTRACT_ADDRESS as string;
@@ -63,19 +61,20 @@ export function initInMemoryDataStorage(): IDataStorage {
     credential: new CredentialStorage(new InMemoryDataSource<W3CCredential>()),
     identity: new IdentityStorage(
       new InMemoryDataSource<Identity>(),
-      new InMemoryDataSource<Profile>(),
+      new InMemoryDataSource<Profile>()
     ),
     mt: new InMemoryMerkleTreeStorage(40),
 
-    states: new EthStateStorage(defaultEthConnectionConfig),
+    states: new EthStateStorage(defaultEthConnectionConfig)
   };
 
   return dataStorage;
 }
 
 export async function initMongoDataStorage(): Promise<IDataStorage> {
-  const url = "mongodb://localhost:27017";
-  const dbName = "mongodb-sdk-example";
+  const mongodb = await MongoMemoryServer.create();
+  const url = mongodb.getUri();
+  const dbName = 'mongodb-sdk-example';
 
   let conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
@@ -83,14 +82,14 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
 
   var dataStorage = {
     credential: new CredentialStorage(
-      await MongoDataSourceFactory<W3CCredential>(url, dbName, "credentials"),
+      await MongoDataSourceFactory<W3CCredential>(url, dbName, 'credentials')
     ),
     identity: new IdentityStorage(
-      await MongoDataSourceFactory<Identity>(url, dbName, "identity"),
-      await MongoDataSourceFactory<Profile>(url, dbName, "profile"),
+      await MongoDataSourceFactory<Identity>(url, dbName, 'identity'),
+      await MongoDataSourceFactory<Profile>(url, dbName, 'profile')
     ),
     mt: await MerkleTreeMongodDBStorage.setup(url, dbName, 40),
-    states: new EthStateStorage(defaultEthConnectionConfig),
+    states: new EthStateStorage(defaultEthConnectionConfig)
   };
 
   return dataStorage as unknown as IDataStorage;
@@ -99,7 +98,7 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
 export async function initIdentityWallet(
   dataStorage: IDataStorage,
   credentialWallet: ICredentialWallet,
-  keyStore: AbstractPrivateKeyStore,
+  keyStore: AbstractPrivateKeyStore
 ): Promise<IIdentityWallet> {
   const bjjProvider = new BjjProvider(KmsKeyType.BabyJubJub, keyStore);
   const kms = new KMS();
@@ -113,16 +112,12 @@ export async function initInMemoryDataStorageAndWallets() {
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
 
-  const identityWallet = await initIdentityWallet(
-    dataStorage,
-    credentialWallet,
-    memoryKeyStore,
-  );
+  const identityWallet = await initIdentityWallet(dataStorage, credentialWallet, memoryKeyStore);
 
   return {
     dataStorage,
     credentialWallet,
-    identityWallet,
+    identityWallet
   };
 }
 
@@ -131,88 +126,71 @@ export async function initMongoDataStorageAndWallets() {
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
 
-  const identityWallet = await initIdentityWallet(
-    dataStorage,
-    credentialWallet,
-    memoryKeyStore,
-  );
+  const identityWallet = await initIdentityWallet(dataStorage, credentialWallet, memoryKeyStore);
 
   return {
     dataStorage,
     credentialWallet,
-    identityWallet,
+    identityWallet
   };
 }
 
-export async function initCredentialWallet(
-  dataStorage: IDataStorage,
-): Promise<CredentialWallet> {
+export async function initCredentialWallet(dataStorage: IDataStorage): Promise<CredentialWallet> {
   const resolvers = new CredentialStatusResolverRegistry();
-  resolvers.register(
-    CredentialStatusType.SparseMerkleTreeProof,
-    new IssuerResolver(),
-  );
+  resolvers.register(CredentialStatusType.SparseMerkleTreeProof, new IssuerResolver());
   resolvers.register(
     CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-    new RHSResolver(dataStorage.states),
+    new RHSResolver(dataStorage.states)
   );
   resolvers.register(
     CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
-    new OnChainResolver([defaultEthConnectionConfig]),
+    new OnChainResolver([defaultEthConnectionConfig])
   );
-  resolvers.register(
-    CredentialStatusType.Iden3commRevocationStatusV1,
-    new AgentResolver(),
-  );
+  resolvers.register(CredentialStatusType.Iden3commRevocationStatusV1, new AgentResolver());
 
   return new CredentialWallet(dataStorage, resolvers);
 }
 
 export async function initCircuitStorage(): Promise<ICircuitStorage> {
   return new FSCircuitStorage({
-    dirname: path.join(__dirname, circuitsFolder),
+    dirname: path.join(__dirname, circuitsFolder)
   });
 }
 export async function initProofService(
   identityWallet: IIdentityWallet,
   credentialWallet: ICredentialWallet,
   stateStorage: IStateStorage,
-  circuitStorage: ICircuitStorage,
+  circuitStorage: ICircuitStorage
 ): Promise<ProofService> {
-  return new ProofService(
-    identityWallet,
-    credentialWallet,
-    circuitStorage,
-    stateStorage,
-    { ipfsGatewayURL: "https://ipfs.io" },
-  );
+  return new ProofService(identityWallet, credentialWallet, circuitStorage, stateStorage, {
+    ipfsGatewayURL: 'https://ipfs.io'
+  });
 }
 
 export async function initPackageManager(
   circuitData: CircuitData,
   prepareFn: AuthDataPrepareFunc,
-  stateVerificationFn: StateVerificationFunc,
+  stateVerificationFn: StateVerificationFunc
 ): Promise<IPackageManager> {
   const authInputsHandler = new DataPrepareHandlerFunc(prepareFn);
 
   const verificationFn = new VerificationHandlerFunc(stateVerificationFn);
-  const mapKey =
-    proving.provingMethodGroth16AuthV2Instance.methodAlg.toString();
+  const mapKey = proving.provingMethodGroth16AuthV2Instance.methodAlg.toString();
   const verificationParamMap: Map<string, VerificationParams> = new Map([
     [
       mapKey,
       {
         key: circuitData.verificationKey!,
-        verificationFn,
-      },
-    ],
+        verificationFn
+      }
+    ]
   ]);
 
   const provingParamMap: Map<string, ProvingParams> = new Map();
   provingParamMap.set(mapKey, {
     dataPreparer: authInputsHandler,
     provingKey: circuitData.provingKey!,
-    wasm: circuitData.wasm!,
+    wasm: circuitData.wasm!
   });
 
   const mgr: IPackageManager = new PackageManager();
