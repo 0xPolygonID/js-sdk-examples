@@ -28,6 +28,9 @@
     RPC_URL="" 
     # key in hex format with matic balance
     WALLET_KEY="" 
+    # MongoDB connection string, uses in memory Mongo server if not specified
+    MONGO_DB_CONNECTION=""
+
     ```
 
 3. Install dependencies

@@ -52,6 +52,7 @@ import { MongoClient, Db } from 'mongodb';
 const rpcUrl = process.env.RPC_URL as string;
 const contractAddress = process.env.CONTRACT_ADDRESS as string;
 const circuitsFolder = process.env.CIRCUITS_PATH as string;
+const mongoDbConnection = process.env.MONGO_DB_CONNECTION as string;
 
 export function initInMemoryDataStorage(): IDataStorage {
   let conf: EthConnectionConfig = defaultEthConnectionConfig;
@@ -73,11 +74,14 @@ export function initInMemoryDataStorage(): IDataStorage {
 }
 
 export async function initMongoDataStorage(): Promise<IDataStorage> {
-  const mongodb = await MongoMemoryServer.create();
-  const client = new MongoClient(mongodb.getUri());
+  let url = mongoDbConnection;
+  if (!url) {
+    const mongodb = await MongoMemoryServer.create();
+    url = mongodb.getUri();
+  }
+  const client = new MongoClient(url);
   await client.connect();
   const db: Db = client.db('mongodb-sdk-example');
-
 
   let conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
