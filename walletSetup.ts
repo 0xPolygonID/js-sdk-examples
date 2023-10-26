@@ -47,6 +47,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/mongo-storage';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoClient, Db } from 'mongodb';
 
 const rpcUrl = process.env.RPC_URL as string;
 const contractAddress = process.env.CONTRACT_ADDRESS as string;
@@ -73,8 +74,10 @@ export function initInMemoryDataStorage(): IDataStorage {
 
 export async function initMongoDataStorage(): Promise<IDataStorage> {
   const mongodb = await MongoMemoryServer.create();
-  const url = mongodb.getUri();
-  const dbName = 'mongodb-sdk-example';
+  const client = new MongoClient(mongodb.getUri());
+  await client.connect();
+  const db: Db = client.db('mongodb-sdk-example');
+
 
   let conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
@@ -82,13 +85,13 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
 
   var dataStorage = {
     credential: new CredentialStorage(
-      await MongoDataSourceFactory<W3CCredential>(url, dbName, 'credentials')
+      await MongoDataSourceFactory<W3CCredential>(db, 'credentials')
     ),
     identity: new IdentityStorage(
-      await MongoDataSourceFactory<Identity>(url, dbName, 'identity'),
-      await MongoDataSourceFactory<Profile>(url, dbName, 'profile')
+      await MongoDataSourceFactory<Identity>(db, 'identity'),
+      await MongoDataSourceFactory<Profile>(db, 'profile')
     ),
-    mt: await MerkleTreeMongodDBStorage.setup(url, dbName, 40),
+    mt: await MerkleTreeMongodDBStorage.setup(db, 40),
     states: new EthStateStorage(defaultEthConnectionConfig)
   };
 
