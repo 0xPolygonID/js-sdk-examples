@@ -14,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "@0xpolygonid/js-sdk": "1.4.1",
+    "@0xpolygonid/js-sdk": "file:../js-sdk",
     "@0xpolygonid/mongo-storage": "github:0xPolygonID/nodejs-storage-example",
     "@iden3/js-crypto": "1.0.3",
     "@iden3/js-jsonld-merklization": "1.1.2",

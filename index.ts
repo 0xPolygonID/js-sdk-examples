@@ -174,6 +174,10 @@ async function transitState() {
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await identityWallet.createIdentity(defaultIdentityCreationOptions);
 
+
+  console.log('=============== issuerDID did ===============');
+  console.log(issuerDID.string());
+
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
 
