@@ -174,7 +174,6 @@ async function transitState() {
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
     await identityWallet.createIdentity(defaultIdentityCreationOptions);
 
-
   console.log('=============== issuerDID did ===============');
   console.log(issuerDID.string());
 
@@ -204,99 +203,97 @@ async function transitState() {
   console.log(txId);
 }
 
-// async function transitStateThirdPartyDID() {
-//   console.log('=============== THIRD PARTY DID: transit state  ===============');
-//   core.registerDidMethodNetwork({
-//     method: 'thirdparty',
-//     methodByte: 0b1000_0001,
-//     blockchain: 'linea',
-//     network: 'test',
-//     networkFlag: 0b01000000 | 0b00000001,
-//     chainId: 59140
-//   });
+async function transitStateThirdPartyDID() {
+  console.log('=============== THIRD PARTY DID: transit state  ===============');
+  core.registerDidMethodNetwork({
+    method: 'thirdparty',
+    methodByte: 0b1000_0001,
+    blockchain: 'linea',
+    network: 'test',
+    networkFlag: 0b01000000 | 0b00000001,
+    chainId: 11155111
+  });
 
-//   core.registerDidMethodNetwork({
-//     method: 'iden3',
-//     blockchain: 'linea',
-//     network: 'test',
-//     networkFlag: 0b11000000 | 0b00000011
-//   });
+  core.registerDidMethodNetwork({
+    method: 'iden3',
+    blockchain: 'linea',
+    network: 'test',
+    networkFlag: 0b11000000 | 0b00000011
+  });
 
-//   const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
-//     {
-//       rpcUrl: process.env.THIRD_PARTY_RPC_URL as string,
-//       contractAddress: process.env.THIRD_PARTY_CONTRACT_ADDRESS as string
-//     }
-//   );
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    {
+      rpcUrl: process.env.THIRD_PARTY_RPC_URL as string,
+      contractAddress: process.env.THIRD_PARTY_CONTRACT_ADDRESS as string
+    }
+  );
 
-//   console.log(process.env.THIRD_PARTY_RPC_URL, process.env.THIRD_PARTY_CONTRACT_ADDRESS);
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
 
-//   const circuitStorage = await initCircuitStorage();
-//   const proofService = await initProofService(
-//     identityWallet,
-//     credentialWallet,
-//     dataStorage.states,
-//     circuitStorage
-//   );
+  const method = core.DidMethod.thirdparty;
+  const blockchain = core.Blockchain.linea;
+  const networkId = core.NetworkId.test;
+  const { did: userDID } = await identityWallet.createIdentity({
+    method,
+    blockchain,
+    networkId,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      id: rhsUrl
+    }
+  });
 
-//   const method = core.DidMethod.thirdparty;
-//   const blockchain = core.Blockchain.linea;
-//   const networkId = core.NetworkId.test;
-//   const { did: userDID } = await identityWallet.createIdentity({
-//     method,
-//     blockchain,
-//     networkId,
-//     revocationOpts: {
-//       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-//       id: rhsUrl
-//     }
-//   });
+  console.log('=============== third party: user did ===============');
+  console.log(userDID.string());
 
-//   console.log('=============== third party: user did ===============');
-//   console.log(userDID.string());
+  const { did: issuerDID } = await identityWallet.createIdentity({
+    method: core.DidMethod.Iden3,
+    blockchain: core.Blockchain.linea,
+    networkId: core.NetworkId.test,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      id: rhsUrl
+    }
+  });
+  console.log('=============== third party: issuer did ===============');
+  console.log(issuerDID.string());
 
-//   const { did: issuerDID } = await identityWallet.createIdentity({
-//     method: core.DidMethod.Iden3,
-//     blockchain: core.Blockchain.linea,
-//     networkId: core.NetworkId.test,
-//     revocationOpts: {
-//       type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-//       id: rhsUrl
-//     }
-//   });
-//   console.log('=============== third party: issuer did ===============');
-//   console.log(issuerDID.string());
+  const credentialRequest = createKYCAgeCredential(userDID);
+  const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
 
-//   const credentialRequest = createKYCAgeCredential(userDID);
-//   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
+  await dataStorage.credential.saveCredential(credential);
 
-//   await dataStorage.credential.saveCredential(credential);
+  console.log(
+    '================= third party: generate Iden3SparseMerkleTreeProof ======================='
+  );
 
-//   console.log(
-//     '================= third party: generate Iden3SparseMerkleTreeProof ======================='
-//   );
+  const res = await identityWallet.addCredentialsToMerkleTree([credential], issuerDID);
 
-//   const res = await identityWallet.addCredentialsToMerkleTree([credential], issuerDID);
+  console.log('================= third party: push states to rhs ===================');
 
-//   console.log('================= third party: push states to rhs ===================');
+  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
 
-//   await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  console.log('================= publish to blockchain ===================');
 
-//   console.log('================= publish to blockchain ===================');
-
-//   const ethSigner = new ethers.Wallet(
-//     process.env.THIRD_PARTY_WALLET_KEY as string,
-//     (dataStorage.states as EthStateStorage).provider
-//   );
-//   const txId = await proofService.transitState(
-//     issuerDID,
-//     res.oldTreeState,
-//     true,
-//     dataStorage.states,
-//     ethSigner
-//   );
-//   console.log(txId);
-// }
+  const ethSigner = new ethers.Wallet(
+    process.env.THIRD_PARTY_WALLET_KEY as string,
+    (dataStorage.states as EthStateStorage).provider
+  );
+  const txId = await proofService.transitState(
+    issuerDID,
+    res.oldTreeState,
+    true,
+    dataStorage.states,
+    ethSigner
+  );
+  console.log(txId);
+}
 
 async function generateProofs(useMongoStore = false) {
   console.log('=============== generate proofs ===============');
@@ -702,7 +699,7 @@ async function main(choice: string) {
       await handleAuthRequest(true);
       break;
     case 'transitStateThirdPartyDID':
-      // await transitStateThirdPartyDID();
+      await transitStateThirdPartyDID();
       break;
 
     default:
