@@ -115,7 +115,9 @@ async function identityCreation() {
   console.log('=============== key creation ===============');
 
   const { identityWallet } = await initInMemoryDataStorageAndWallets(defaultNetworkConnection);
-  const { did, credential } = await identityWallet.createIdentity(defaultIdentityCreationOptions);
+  const { did, credential } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== did ===============');
   console.log(did.string());
@@ -130,16 +132,18 @@ async function issueCredential() {
     defaultNetworkConnection
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity(
-    defaultIdentityCreationOptions
-  );
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(defaultIdentityCreationOptions);
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
+  console.log('=============== issuer did ===============');
+  console.log(issuerDID.string());
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
 
@@ -164,15 +168,15 @@ async function transitState() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity(
-    defaultIdentityCreationOptions
-  );
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(defaultIdentityCreationOptions);
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   console.log('=============== issuerDID did ===============');
   console.log(issuerDID.string());
@@ -317,15 +321,15 @@ async function generateProofs(useMongoStore = false) {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity(
-    defaultIdentityCreationOptions
-  );
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(defaultIdentityCreationOptions);
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
@@ -426,15 +430,15 @@ async function handleAuthRequest(useMongoStore = false) {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity(
-    defaultIdentityCreationOptions
-  );
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(defaultIdentityCreationOptions);
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
@@ -526,15 +530,15 @@ async function handleAuthRequestWithProfiles() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity(
-    defaultIdentityCreationOptions
-  );
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(defaultIdentityCreationOptions);
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   // credential is issued on the profile!
   const profileDID = await identityWallet.createProfile(userDID, 50, issuerDID.string());
@@ -610,15 +614,15 @@ async function handleAuthRequestNoIssuerStateTransition() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity(
-    defaultIdentityCreationOptions
-  );
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
-    await identityWallet.createIdentity(defaultIdentityCreationOptions);
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
