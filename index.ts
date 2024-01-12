@@ -633,7 +633,7 @@ async function handleAuthRequestWithProfilesV3CircuitBeta() {
 
   await dataStorage.credential.saveCredential(credential);
 
-  console.log('================= generate credentialAtomicSigV2 ===================');
+  console.log('================= generate credentialAtomicV3 ===================');
 
 
   const proofReq: ZeroKnowledgeProofRequest = {
