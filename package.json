@@ -13,14 +13,15 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@0xpolygonid/js-sdk": "1.4.1",
+  "peerDependencies": {
+    "@0xpolygonid/js-sdk": "1.6.0",
     "@0xpolygonid/mongo-storage": "github:0xPolygonID/nodejs-storage-example",
     "@iden3/js-crypto": "1.0.3",
-    "@iden3/js-iden3-core": "1.1.0",
     "@iden3/js-jsonld-merklization": "1.1.2",
-    "@iden3/js-jwz": "1.1.2",
-    "@iden3/js-merkletree": "1.1.2",
+    "@iden3/js-jwz": "1.2.1",
+    "@iden3/js-merkletree": "1.1.2"
+  },
+  "dependencies": {
     "dotenv": "^16.3.1",
     "ethers": "6.8.0",
     "mongodb-memory-server": "^8.16.0",

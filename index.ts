@@ -1,14 +1,16 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console */
 import {
   EthStateStorage,
   CredentialRequest,
   CircuitId,
-  IIdentityWallet,
   ZeroKnowledgeProofRequest,
   AuthorizationRequestMessage,
   PROTOCOL_CONSTANTS,
   AuthHandler,
   core,
-  CredentialStatusType
+  CredentialStatusType,
+  IdentityCreationOptions
 } from '@0xpolygonid/js-sdk';
 
 import {
@@ -27,22 +29,20 @@ dotenv.config();
 const rhsUrl = process.env.RHS_URL as string;
 const walletKey = process.env.WALLET_KEY as string;
 
-async function createIdentity(identityWallet: IIdentityWallet) {
-  const { did, credential } = await identityWallet.createIdentity({
-    method: core.DidMethod.Iden3,
-    blockchain: core.Blockchain.Polygon,
-    networkId: core.NetworkId.Mumbai,
-    revocationOpts: {
-      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
-      id: rhsUrl
-    }
-  });
+const defaultNetworkConnection = {
+  rpcUrl: process.env.RPC_URL as string,
+  contractAddress: process.env.CONTRACT_ADDRESS as string
+};
 
-  return {
-    did,
-    credential
-  };
-}
+export const defaultIdentityCreationOptions: IdentityCreationOptions = {
+  method: core.DidMethod.Iden3,
+  blockchain: core.Blockchain.Polygon,
+  networkId: core.NetworkId.Mumbai,
+  revocationOpts: {
+    type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    id: rhsUrl
+  }
+};
 
 function createKYCAgeCredential(did: core.DID) {
   const credentialRequest: CredentialRequest = {
@@ -114,8 +114,10 @@ function createKYCAgeCredentialRequest(
 async function identityCreation() {
   console.log('=============== key creation ===============');
 
-  let { identityWallet } = await initInMemoryDataStorageAndWallets();
-  const { did, credential } = await createIdentity(identityWallet);
+  const { identityWallet } = await initInMemoryDataStorageAndWallets(defaultNetworkConnection);
+  const { did, credential } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== did ===============');
   console.log(did.string());
@@ -126,17 +128,22 @@ async function identityCreation() {
 async function issueCredential() {
   console.log('=============== issue credential ===============');
 
-  let { dataStorage, identityWallet } = await initInMemoryDataStorageAndWallets();
+  const { dataStorage, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await createIdentity(identityWallet);
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } = await createIdentity(
-    identityWallet
-  );
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
+  console.log('=============== issuer did ===============');
+  console.log(issuerDID.string());
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
 
@@ -149,7 +156,9 @@ async function issueCredential() {
 async function transitState() {
   console.log('=============== transit state ===============');
 
-  let { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets();
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -159,14 +168,18 @@ async function transitState() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await createIdentity(identityWallet);
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } = await createIdentity(
-    identityWallet
-  );
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
+
+  console.log('=============== issuerDID did ===============');
+  console.log(issuerDID.string());
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
@@ -194,14 +207,110 @@ async function transitState() {
   console.log(txId);
 }
 
+async function transitStateThirdPartyDID() {
+  console.log('=============== THIRD PARTY DID: transit state  ===============');
+  core.registerDidMethodNetwork({
+    method: 'thirdparty',
+    methodByte: 0b1000_0001,
+    blockchain: 'linea',
+    network: 'test',
+    networkFlag: 0b01000000 | 0b00000001,
+    chainId: 11155111
+  });
+
+  core.registerDidMethodNetwork({
+    method: 'iden3',
+    blockchain: 'linea',
+    network: 'test',
+    networkFlag: 0b11000000 | 0b00000011
+  });
+
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    {
+      rpcUrl: process.env.THIRD_PARTY_RPC_URL as string,
+      contractAddress: process.env.THIRD_PARTY_CONTRACT_ADDRESS as string
+    }
+  );
+
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const method = core.DidMethod.thirdparty;
+  const blockchain = core.Blockchain.linea;
+  const networkId = core.NetworkId.test;
+  const { did: userDID } = await identityWallet.createIdentity({
+    method,
+    blockchain,
+    networkId,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      id: rhsUrl
+    }
+  });
+
+  console.log('=============== third party: user did ===============');
+  console.log(userDID.string());
+
+  const { did: issuerDID } = await identityWallet.createIdentity({
+    method: core.DidMethod.Iden3,
+    blockchain: core.Blockchain.linea,
+    networkId: core.NetworkId.test,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      id: rhsUrl
+    }
+  });
+  console.log('=============== third party: issuer did ===============');
+  console.log(issuerDID.string());
+
+  const credentialRequest = createKYCAgeCredential(userDID);
+  const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
+
+  await dataStorage.credential.saveCredential(credential);
+
+  console.log(
+    '================= third party: generate Iden3SparseMerkleTreeProof ======================='
+  );
+
+  const res = await identityWallet.addCredentialsToMerkleTree([credential], issuerDID);
+
+  console.log('================= third party: push states to rhs ===================');
+
+  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+
+  console.log('================= publish to blockchain ===================');
+
+  const ethSigner = new ethers.Wallet(
+    process.env.THIRD_PARTY_WALLET_KEY as string,
+    (dataStorage.states as EthStateStorage).provider
+  );
+  const txId = await proofService.transitState(
+    issuerDID,
+    res.oldTreeState,
+    true,
+    dataStorage.states,
+    ethSigner
+  );
+  console.log(txId);
+}
+
 async function generateProofs(useMongoStore = false) {
   console.log('=============== generate proofs ===============');
 
   let dataStorage, credentialWallet, identityWallet;
   if (useMongoStore) {
-    ({ dataStorage, credentialWallet, identityWallet } = await initMongoDataStorageAndWallets());
+    ({ dataStorage, credentialWallet, identityWallet } = await initMongoDataStorageAndWallets(
+      defaultNetworkConnection
+    ));
   } else {
-    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets());
+    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+      defaultNetworkConnection
+    ));
   }
 
   const circuitStorage = await initCircuitStorage();
@@ -212,14 +321,15 @@ async function generateProofs(useMongoStore = false) {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await createIdentity(identityWallet);
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } = await createIdentity(
-    identityWallet
-  );
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
@@ -303,9 +413,13 @@ async function handleAuthRequest(useMongoStore = false) {
 
   let dataStorage, credentialWallet, identityWallet;
   if (useMongoStore) {
-    ({ dataStorage, credentialWallet, identityWallet } = await initMongoDataStorageAndWallets());
+    ({ dataStorage, credentialWallet, identityWallet } = await initMongoDataStorageAndWallets(
+      defaultNetworkConnection
+    ));
   } else {
-    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets());
+    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+      defaultNetworkConnection
+    ));
   }
 
   const circuitStorage = await initCircuitStorage();
@@ -316,14 +430,15 @@ async function handleAuthRequest(useMongoStore = false) {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await createIdentity(identityWallet);
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } = await createIdentity(
-    identityWallet
-  );
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
@@ -359,7 +474,7 @@ async function handleAuthRequest(useMongoStore = false) {
 
   console.log('=================  credential auth request ===================');
 
-  var authRequest: AuthorizationRequestMessage = {
+  const authRequest: AuthorizationRequestMessage = {
     id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
@@ -383,13 +498,13 @@ async function handleAuthRequest(useMongoStore = false) {
   console.log(credsWithIden3MTPProof);
   await credentialWallet.saveAll(credsWithIden3MTPProof);
 
-  var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
+  const authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
   // * on the user side */
 
   console.log('============== handle auth request ==============');
   const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
-  let pm = await initPackageManager(
+  const pm = await initPackageManager(
     authV2Data,
     proofService.generateAuthV2Inputs.bind(proofService),
     proofService.verifyState.bind(proofService)
@@ -403,7 +518,9 @@ async function handleAuthRequest(useMongoStore = false) {
 async function handleAuthRequestWithProfiles() {
   console.log('=============== handle auth request with profiles ===============');
 
-  let { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets();
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -413,14 +530,15 @@ async function handleAuthRequestWithProfiles() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await createIdentity(identityWallet);
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } = await createIdentity(
-    identityWallet
-  );
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   // credential is issued on the profile!
   const profileDID = await identityWallet.createProfile(userDID, 50, issuerDID.string());
@@ -440,7 +558,7 @@ async function handleAuthRequestWithProfiles() {
   console.log('=================  credential auth request ===================');
   const verifierDID = 'did:example:123#JUvpllMEYUZ2joO59UNui_XYDqxVqiFLLAJ8klWuPBw';
 
-  var authRequest: AuthorizationRequestMessage = {
+  const authRequest: AuthorizationRequestMessage = {
     id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
@@ -455,13 +573,13 @@ async function handleAuthRequestWithProfiles() {
   };
   console.log(JSON.stringify(authRequest));
 
-  var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
+  const authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
   // * on the user side */
 
   console.log('============== handle auth request ==============');
   const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
-  let pm = await initPackageManager(
+  const pm = await initPackageManager(
     authV2Data,
     proofService.generateAuthV2Inputs.bind(proofService),
     proofService.verifyState.bind(proofService)
@@ -484,7 +602,9 @@ async function handleAuthRequestWithProfiles() {
 async function handleAuthRequestNoIssuerStateTransition() {
   console.log('=============== handle auth request no issuer state transition ===============');
 
-  let { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets();
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
 
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
@@ -494,14 +614,15 @@ async function handleAuthRequestNoIssuerStateTransition() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await createIdentity(identityWallet);
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
 
   console.log('=============== user did ===============');
   console.log(userDID.string());
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } = await createIdentity(
-    identityWallet
-  );
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
@@ -517,7 +638,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
 
   console.log('=================  credential auth request ===================');
 
-  var authRequest: AuthorizationRequestMessage = {
+  const authRequest: AuthorizationRequestMessage = {
     id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
@@ -532,13 +653,13 @@ async function handleAuthRequestNoIssuerStateTransition() {
   };
   console.log(JSON.stringify(authRequest));
 
-  var authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
+  const authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
   // * on the user side */
 
   console.log('============== handle auth request ==============');
   const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
-  let pm = await initPackageManager(
+  const pm = await initPackageManager(
     authV2Data,
     proofService.generateAuthV2Inputs.bind(proofService),
     proofService.verifyState.bind(proofService)
@@ -549,7 +670,7 @@ async function handleAuthRequestNoIssuerStateTransition() {
   console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
-async function main(choice: String) {
+async function main(choice: string) {
   switch (choice) {
     case 'identityCreation':
       await identityCreation();
@@ -581,12 +702,16 @@ async function main(choice: String) {
     case 'handleAuthRequestMongo':
       await handleAuthRequest(true);
       break;
+    case 'transitStateThirdPartyDID':
+      await transitStateThirdPartyDID();
+      break;
 
     default:
       // default run all
       await identityCreation();
       await issueCredential();
       await transitState();
+      await transitStateThirdPartyDID();
       await generateProofs();
       await handleAuthRequest();
       await handleAuthRequestWithProfiles();

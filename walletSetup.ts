@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { proving } from '@iden3/js-jwz';
 import {
   BjjProvider,
@@ -49,23 +50,25 @@ import { MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db } from 'mongodb';
 
-const rpcUrl = process.env.RPC_URL as string;
-const contractAddress = process.env.CONTRACT_ADDRESS as string;
 const circuitsFolder = process.env.CIRCUITS_PATH as string;
 const mongoDbConnection = process.env.MONGO_DB_CONNECTION as string;
 
-export function initInMemoryDataStorage(): IDataStorage {
-  let conf: EthConnectionConfig = defaultEthConnectionConfig;
+export function initInMemoryDataStorage({
+  contractAddress,
+  rpcUrl
+}: {
+  contractAddress: string;
+  rpcUrl: string;
+}): IDataStorage {
+  const conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
   conf.url = rpcUrl;
- 
+
   // change here priority fees in case transaction is stuck or processing too long
   // conf.maxPriorityFeePerGas = '250000000000' - 250 gwei
   // conf.maxFeePerGas = '250000000000' - 250 gwei
 
-  
-
-  var dataStorage = {
+  const dataStorage = {
     credential: new CredentialStorage(new InMemoryDataSource<W3CCredential>()),
     identity: new IdentityStorage(
       new InMemoryDataSource<Identity>(),
@@ -79,7 +82,13 @@ export function initInMemoryDataStorage(): IDataStorage {
   return dataStorage;
 }
 
-export async function initMongoDataStorage(): Promise<IDataStorage> {
+export async function initMongoDataStorage({
+  rpcUrl,
+  contractAddress
+}: {
+  contractAddress: string;
+  rpcUrl: string;
+}): Promise<IDataStorage> {
   let url = mongoDbConnection;
   if (!url) {
     const mongodb = await MongoMemoryServer.create();
@@ -89,11 +98,11 @@ export async function initMongoDataStorage(): Promise<IDataStorage> {
   await client.connect();
   const db: Db = client.db('mongodb-sdk-example');
 
-  let conf: EthConnectionConfig = defaultEthConnectionConfig;
+  const conf: EthConnectionConfig = defaultEthConnectionConfig;
   conf.contractAddress = contractAddress;
   conf.url = rpcUrl;
 
-  var dataStorage = {
+  const dataStorage = {
     credential: new CredentialStorage(
       await MongoDataSourceFactory<W3CCredential>(db, 'credentials')
     ),
@@ -120,8 +129,11 @@ export async function initIdentityWallet(
   return new IdentityWallet(kms, dataStorage, credentialWallet);
 }
 
-export async function initInMemoryDataStorageAndWallets() {
-  const dataStorage = initInMemoryDataStorage();
+export async function initInMemoryDataStorageAndWallets(config: {
+  contractAddress: string;
+  rpcUrl: string;
+}) {
+  const dataStorage = initInMemoryDataStorage(config);
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
 
@@ -134,8 +146,11 @@ export async function initInMemoryDataStorageAndWallets() {
   };
 }
 
-export async function initMongoDataStorageAndWallets() {
-  const dataStorage = await initMongoDataStorage();
+export async function initMongoDataStorageAndWallets(config: {
+  contractAddress: string;
+  rpcUrl: string;
+}) {
+  const dataStorage = await initMongoDataStorage(config);
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
 

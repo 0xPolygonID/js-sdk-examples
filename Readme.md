@@ -52,6 +52,7 @@ The [function] should be replaced with one of the following options:
 - identityCreation  
 - issueCredential  
 - transitState
+- transitStateThirdPartyDID
 - generateProofs
 - handleAuthRequest
 - handleAuthRequestWithProfiles
