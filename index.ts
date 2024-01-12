@@ -10,7 +10,8 @@ import {
   AuthHandler,
   core,
   CredentialStatusType,
-  IdentityCreationOptions
+  IdentityCreationOptions,
+  ProofType
 } from '@0xpolygonid/js-sdk';
 
 import {
@@ -599,6 +600,123 @@ async function handleAuthRequestWithProfiles() {
   console.log(resp);
 }
 
+async function handleAuthRequestWithProfilesV3CircuitBeta() {
+  console.log('=============== handle auth request with profiles v3 circuits beta ===============');
+
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
+
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
+
+  console.log('=============== user did ===============');
+  console.log(userDID.string());
+
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
+
+  // credential is issued on the profile!
+  const profileDID = await identityWallet.createProfile(userDID, 50, issuerDID.string());
+
+  const credentialRequest = createKYCAgeCredential(profileDID);
+  const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
+
+  await dataStorage.credential.saveCredential(credential);
+
+  console.log('================= generate credentialAtomicSigV2 ===================');
+
+
+  const proofReq: ZeroKnowledgeProofRequest = {
+    id: 19,
+    circuitId: CircuitId.AtomicQueryV3,
+    params: {
+      nullifierSessionId: "123443290439234342342423423423423"
+    },
+    query: {
+      groupId: 1,
+      allowedIssuers: ['*'],
+      proofType:  ProofType.BJJSignature,
+      type: credentialRequest.type,
+      context: 'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
+      credentialSubject: {
+        documentType: {
+        }
+      }
+    }
+  };
+
+  /*
+  const linkedProof: ZeroKnowledgeProofRequest = {
+    id: 20,
+    circuitId: CircuitId.LinkedMultiQuery10,
+    optional: false,
+    query: {
+      groupId: 1,
+      proofType: ProofType.BJJSignature,
+      allowedIssuers: ['*'],
+      type: credentialRequest.type,
+      context: 'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
+      credentialSubject: {
+        birthday: {
+          $lt: 20010101
+        }
+      }
+    }
+  }
+  */
+  console.log('=================  credential auth request ===================');
+  const verifierDID = 'did:polygonid:polygon:mumbai:2qLWqgjWa1cGnmPwCreXuPQrfLrRrzDL1evD6AG7p7';
+
+  const authRequest: AuthorizationRequestMessage = {
+    id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    from: verifierDID,
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE.AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    body: {
+      callbackUrl: 'http://testcallback.com',
+      message: 'v3 beta',
+      scope: [proofReq],
+      reason: 'selective disclosure of document type,'
+    }
+  };
+  console.log(JSON.stringify(authRequest));
+
+  const authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
+
+  // * on the user side */
+
+  console.log('============== handle auth request ==============');
+  const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
+  const pm = await initPackageManager(
+    authV2Data,
+    proofService.generateAuthV2Inputs.bind(proofService),
+    proofService.verifyState.bind(proofService)
+  );
+
+  const authHandler = new AuthHandler(pm, proofService);
+
+  const authProfile = await identityWallet.getProfileByVerifier(authRequest.from);
+
+  // let's check that we didn't create profile for verifier
+  const authProfileDID = authProfile
+    ? core.DID.parse(authProfile.id)
+    : await identityWallet.createProfile(userDID, 100, authRequest.from);
+
+  const resp = await authHandler.handleAuthorizationRequest(authProfileDID, authRawRequest);
+
+  console.log(resp);
+}
 async function handleAuthRequestNoIssuerStateTransition() {
   console.log('=============== handle auth request no issuer state transition ===============');
 
@@ -690,6 +808,9 @@ async function main(choice: string) {
     case 'handleAuthRequestWithProfiles':
       await handleAuthRequestWithProfiles();
       break;
+    case 'handleAuthRequestWithProfilesV3CircuitBeta':
+      await handleAuthRequestWithProfilesV3CircuitBeta();
+      break;
     case 'handleAuthRequestNoIssuerStateTransition':
       await handleAuthRequestNoIssuerStateTransition();
       break;
@@ -702,6 +823,7 @@ async function main(choice: string) {
     case 'handleAuthRequestMongo':
       await handleAuthRequest(true);
       break;
+
     case 'transitStateThirdPartyDID':
       await transitStateThirdPartyDID();
       break;
@@ -715,6 +837,7 @@ async function main(choice: string) {
       await generateProofs();
       await handleAuthRequest();
       await handleAuthRequestWithProfiles();
+      await handleAuthRequestWithProfilesV3CircuitBeta();
       await handleAuthRequestNoIssuerStateTransition();
       await generateRequestData();
       await generateProofs(true);
