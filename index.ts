@@ -711,7 +711,7 @@ async function main(choice: string) {
       await identityCreation();
       await issueCredential();
       await transitState();
-      // await transitStateThirdPartyDID();
+      await transitStateThirdPartyDID();
       await generateProofs();
       await handleAuthRequest();
       await handleAuthRequestWithProfiles();
