@@ -635,27 +635,25 @@ async function handleAuthRequestWithProfilesV3CircuitBeta() {
 
   console.log('================= generate credentialAtomicV3 ===================');
 
-
   const proofReq: ZeroKnowledgeProofRequest = {
     id: 19,
     circuitId: CircuitId.AtomicQueryV3,
     params: {
-      nullifierSessionId: "123443290439234342342423423423423"
+      nullifierSessionId: '123443290439234342342423423423423'
     },
     query: {
       groupId: 1,
       allowedIssuers: ['*'],
-      proofType:  ProofType.BJJSignature,
+      proofType: ProofType.BJJSignature,
       type: credentialRequest.type,
-      context: 'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
+      context:
+        'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
       credentialSubject: {
-        documentType: {
-        }
+        documentType: {}
       }
     }
   };
 
-  /*
   const linkedProof: ZeroKnowledgeProofRequest = {
     id: 20,
     circuitId: CircuitId.LinkedMultiQuery10,
@@ -665,15 +663,16 @@ async function handleAuthRequestWithProfilesV3CircuitBeta() {
       proofType: ProofType.BJJSignature,
       allowedIssuers: ['*'],
       type: credentialRequest.type,
-      context: 'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
+      context:
+        'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
       credentialSubject: {
         birthday: {
           $lt: 20010101
         }
       }
     }
-  }
-  */
+  };
+
   console.log('=================  credential auth request ===================');
   const verifierDID = 'did:polygonid:polygon:mumbai:2qLWqgjWa1cGnmPwCreXuPQrfLrRrzDL1evD6AG7p7';
 
@@ -686,7 +685,7 @@ async function handleAuthRequestWithProfilesV3CircuitBeta() {
     body: {
       callbackUrl: 'http://testcallback.com',
       message: 'v3 beta',
-      scope: [proofReq],
+      scope: [proofReq, linkedProof],
       reason: 'selective disclosure of document type,'
     }
   };
