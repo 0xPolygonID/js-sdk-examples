@@ -1027,6 +1027,10 @@ async function main(choice: string) {
       await transitStateThirdPartyDID();
       break;
 
+    case 'handleAuthRequestV3CircuitsBetaStateTransition':
+      await handleAuthRequestV3CircuitsBetaStateTransition();
+      break;
+
     default:
       // default run all
       await identityCreation();
