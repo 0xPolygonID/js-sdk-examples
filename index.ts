@@ -11,7 +11,9 @@ import {
   core,
   CredentialStatusType,
   IdentityCreationOptions,
-  ProofType
+  ProofType,
+  AuthorizationRequestMessageBody,
+  byteEncoder
 } from '@0xpolygonid/js-sdk';
 
 import {
@@ -716,6 +718,7 @@ async function handleAuthRequestWithProfilesV3CircuitBeta() {
 
   console.log(resp);
 }
+
 async function handleAuthRequestNoIssuerStateTransition() {
   console.log('=============== handle auth request no issuer state transition ===============');
 
@@ -787,6 +790,203 @@ async function handleAuthRequestNoIssuerStateTransition() {
   console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
+async function handleAuthRequestV3CircuitsBetaStateTransition() {
+  console.log('=============== handle auth request no issuer state transition V3 ===============');
+
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
+
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
+  const pm = await initPackageManager(
+    authV2Data,
+    proofService.generateAuthV2Inputs.bind(proofService),
+    proofService.verifyState.bind(proofService)
+  );
+
+  const authHandler = new AuthHandler(pm, proofService);
+
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
+
+  console.log('=============== user did ===============', issuerDID.string());
+
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
+
+  console.log('=============== user did ===============', userDID.string());
+
+  const profileDID = await identityWallet.createProfile(userDID, 777, issuerDID.string());
+
+  const claimReq: CredentialRequest = {
+    credentialSchema:
+      'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/kyc-nonmerklized.json',
+    type: 'KYCAgeCredential',
+    credentialSubject: {
+      id: userDID.string(),
+      birthday: 19960424,
+      documentType: 99
+    },
+    expiration: 2793526400,
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      id: rhsUrl
+    }
+  };
+  const issuedCred = await identityWallet.issueCredential(issuerDID, claimReq);
+  await credentialWallet.save(issuedCred);
+  console.log('=============== issued birthday credential ===============');
+
+  const res = await identityWallet.addCredentialsToMerkleTree([issuedCred], issuerDID);
+  console.log('=============== added to merkle tree ===============');
+
+  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  console.log('=============== published to rhs ===============');
+
+  const ethSigner = new ethers.Wallet(walletKey, (dataStorage.states as EthStateStorage).provider);
+
+  const txId = await proofService.transitState(
+    issuerDID,
+    res.oldTreeState,
+    true,
+    dataStorage.states,
+    ethSigner
+  );
+
+  console.log('=============== state transition ===============', txId);
+
+  const credsWithIden3MTPProof = await identityWallet.generateIden3SparseMerkleTreeProof(
+    issuerDID,
+    res.credentials,
+    txId
+  );
+
+  await credentialWallet.saveAll(credsWithIden3MTPProof);
+
+  console.log('=============== saved credentials with mtp proof ===============');
+
+  const employeeCredRequest: CredentialRequest = {
+    credentialSchema:
+      'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCEmployee-v101.json',
+    type: 'KYCEmployee',
+    credentialSubject: {
+      id: profileDID.string(),
+      ZKPexperiance: true,
+      hireDate: '2023-12-11',
+      position: 'boss',
+      salary: 200,
+      documentType: 1
+    },
+    revocationOpts: {
+      type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+      id: rhsUrl
+    }
+  };
+  const employeeCred = await identityWallet.issueCredential(issuerDID, employeeCredRequest);
+
+  await credentialWallet.save(employeeCred);
+
+  console.log('=============== issued employee credential ===============');
+
+  console.log(
+    '=============== generate ZeroKnowledgeProofRequest MTP + SIG + with Linked proof ==================='
+  );
+
+  const proofReqs: ZeroKnowledgeProofRequest[] = [
+    {
+      id: 1,
+      circuitId: CircuitId.AtomicQueryV3,
+      optional: false,
+      query: {
+        allowedIssuers: ['*'],
+        type: claimReq.type,
+        proofType: ProofType.Iden3SparseMerkleTreeProof,
+        context:
+          'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-nonmerklized.jsonld',
+        credentialSubject: {
+          documentType: {
+            $eq: 99
+          }
+        }
+      }
+    },
+    {
+      id: 2,
+      circuitId: CircuitId.AtomicQueryV3,
+      optional: false,
+      params: {
+        nullifierSessionId: 12345
+      },
+      query: {
+        groupId: 1,
+        proofType: ProofType.BJJSignature,
+        allowedIssuers: ['*'],
+        type: 'KYCEmployee',
+        context:
+          'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v101.json-ld',
+        skipClaimRevocationCheck: true,
+        credentialSubject: {
+          salary: {
+            $eq: 200
+          }
+        }
+      }
+    },
+    {
+      id: 3,
+      circuitId: CircuitId.LinkedMultiQuery10,
+      optional: false,
+      query: {
+        groupId: 1,
+        proofType: ProofType.Iden3SparseMerkleTreeProof,
+        allowedIssuers: ['*'],
+        type: 'KYCEmployee',
+        skipClaimRevocationCheck: true,
+        context:
+          'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v101.json-ld',
+        credentialSubject: {
+          salary: {
+            $ne: 300
+          }
+        }
+      }
+    }
+  ];
+
+  const authReqBody: AuthorizationRequestMessageBody = {
+    callbackUrl: 'http://localhost:8080/callback?id=1234442-123123-123123',
+    reason: 'reason',
+    message: 'mesage',
+    did_doc: {},
+    scope: proofReqs
+  };
+
+  const id = globalThis.crypto.randomUUID();
+  const authReq: AuthorizationRequestMessage = {
+    id,
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE.AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    thid: id,
+    body: authReqBody,
+    from: issuerDID.string()
+  };
+
+  const msgBytes = byteEncoder.encode(JSON.stringify(authReq));
+  console.log('=============== auth request ===============');
+
+  const authHandlerRequest = await authHandler.handleAuthorizationRequest(userDID, msgBytes);
+  console.log(JSON.stringify(authHandlerRequest, null, 2));
+}
+
 async function main(choice: string) {
   switch (choice) {
     case 'identityCreation':
@@ -827,6 +1027,10 @@ async function main(choice: string) {
       await transitStateThirdPartyDID();
       break;
 
+    case 'handleAuthRequestV3CircuitsBetaStateTransition':
+      await handleAuthRequestV3CircuitsBetaStateTransition();
+      break;
+
     default:
       // default run all
       await identityCreation();
@@ -841,6 +1045,7 @@ async function main(choice: string) {
       await generateRequestData();
       await generateProofs(true);
       await handleAuthRequest(true);
+      await handleAuthRequestV3CircuitsBetaStateTransition();
   }
 }
 
