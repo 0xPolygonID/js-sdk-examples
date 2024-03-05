@@ -987,6 +987,257 @@ async function handleAuthRequestV3CircuitsBetaStateTransition() {
   console.log(JSON.stringify(authHandlerRequest, null, 2));
 }
 
+async function benchmarkHandleAuthRequest() {
+  console.log('=============== handle benchmark AuthRequest ===============');
+
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
+
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
+
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
+
+  const credentialRequest = createKYCAgeCredential(userDID);
+  const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
+
+  await dataStorage.credential.saveCredential(credential);
+
+  const proofReq0: ZeroKnowledgeProofRequest = {
+    id: 19,
+    circuitId: CircuitId.AtomicQueryV3,
+    query: {
+      allowedIssuers: ['*'],
+      proofType: ProofType.BJJSignature,
+      type: credentialRequest.type,
+      context:
+        'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
+      credentialSubject: {
+        documentType: {
+          $lte: 99
+        }
+      }
+    }
+  };
+
+  let proofReq1 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq2 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq3 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq4 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq5 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq6 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq7 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq8 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq9 = JSON.parse(JSON.stringify(proofReq0));
+
+  proofReq1.id = 20;
+  proofReq2.id = 21;
+  proofReq3.id = 22;
+  proofReq4.id = 23;
+  proofReq5.id = 24;
+  proofReq6.id = 25;
+  proofReq7.id = 26;
+  proofReq8.id = 27;
+  proofReq9.id = 28;
+
+  proofReq1.query.credentialSubject.documentType['$lte'] = 100;
+  proofReq2.query.credentialSubject.documentType['$lte'] = 101;
+  proofReq3.query.credentialSubject.documentType['$lte'] = 102;
+  proofReq4.query.credentialSubject.documentType['$lte'] = 103;
+  proofReq5.query.credentialSubject.documentType['$lte'] = 104;
+  proofReq6.query.credentialSubject.documentType['$lte'] = 105;
+  proofReq7.query.credentialSubject.documentType['$lte'] = 106;
+  proofReq8.query.credentialSubject.documentType['$lte'] = 107;
+  proofReq9.query.credentialSubject.documentType['$lte'] = 108;
+
+  const verifierDID = 'did:polygonid:polygon:mumbai:2qLWqgjWa1cGnmPwCreXuPQrfLrRrzDL1evD6AG7p7';
+
+  const authRequest1: AuthorizationRequestMessage = {
+    id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    from: verifierDID,
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE.AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    body: {
+      callbackUrl: 'http://testcallback.com',
+      message: 'v3 beta',
+      scope: [proofReq0],
+      reason: '$lte for documentType'
+    }
+  };
+
+  const authRequest3: AuthorizationRequestMessage = {
+    id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    from: verifierDID,
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE.AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    body: {
+      callbackUrl: 'http://testcallback.com',
+      message: 'v3 beta',
+      scope: [proofReq0, proofReq1, proofReq2],
+      reason: '$lte for documentType'
+    }
+  };
+
+  const authRequest10: AuthorizationRequestMessage = {
+    id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
+    typ: PROTOCOL_CONSTANTS.MediaType.PlainMessage,
+    from: verifierDID,
+    type: PROTOCOL_CONSTANTS.PROTOCOL_MESSAGE_TYPE.AUTHORIZATION_REQUEST_MESSAGE_TYPE,
+    body: {
+      callbackUrl: 'http://testcallback.com',
+      message: 'v3 beta',
+      scope: [proofReq0, proofReq1, proofReq2, proofReq3, proofReq4, proofReq5, proofReq6, proofReq7, proofReq8, proofReq9],
+      reason: '$lte for documentType'
+    }
+  };
+
+  const authRawRequest1 = new TextEncoder().encode(JSON.stringify(authRequest1));
+  const authRawRequest3 = new TextEncoder().encode(JSON.stringify(authRequest3));
+  const authRawRequest10 = new TextEncoder().encode(JSON.stringify(authRequest10));
+
+  const authV2Data = await circuitStorage.loadCircuitData(CircuitId.AuthV2);
+  const pm = await initPackageManager(
+    authV2Data,
+    proofService.generateAuthV2Inputs.bind(proofService),
+    proofService.verifyState.bind(proofService)
+  );
+
+  const authHandler = new AuthHandler(pm, proofService);
+
+  let t0 = performance.now();
+  const resp1 = await authHandler.handleAuthorizationRequest(userDID, authRawRequest1);
+  let t1 = performance.now();
+  console.log(`Call handleAuthorizationRequest with 1 request took ${t1 - t0} milliseconds.`);
+
+  t0 = performance.now();
+  const resp3 = await authHandler.handleAuthorizationRequest(userDID, authRawRequest3);
+  t1 = performance.now();
+  console.log(`Call handleAuthorizationRequest with 3 requests took ${t1 - t0} milliseconds.`);
+
+  t0 = performance.now();
+  const resp10 = await authHandler.handleAuthorizationRequest(userDID, authRawRequest10);
+  t1 = performance.now();
+  console.log(`Call handleAuthorizationRequest with 10 requests took ${t1 - t0} milliseconds.`);
+}
+
+async function benchmarkGenerateProof() {
+  console.log('=============== handle benchmark generate proof ===============');
+
+  const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    defaultNetworkConnection
+  );
+
+  const circuitStorage = await initCircuitStorage();
+  const proofService = await initProofService(
+    identityWallet,
+    credentialWallet,
+    dataStorage.states,
+    circuitStorage
+  );
+
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+    ...defaultIdentityCreationOptions
+  });
+
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
+
+  const credentialRequest = createKYCAgeCredential(userDID);
+  const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
+
+  await dataStorage.credential.saveCredential(credential);
+
+  const proofReq0: ZeroKnowledgeProofRequest = {
+    id: 19,
+    circuitId: CircuitId.AtomicQueryV3,
+    query: {
+      allowedIssuers: ['*'],
+      proofType: ProofType.BJJSignature,
+      type: credentialRequest.type,
+      context:
+        'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
+      credentialSubject: {
+        documentType: {
+          $lte: 99
+        }
+      }
+    }
+  };
+
+  let proofReq1 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq2 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq3 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq4 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq5 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq6 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq7 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq8 = JSON.parse(JSON.stringify(proofReq0));
+  let proofReq9 = JSON.parse(JSON.stringify(proofReq0));
+
+  proofReq1.id = 20;
+  proofReq2.id = 21;
+  proofReq3.id = 22;
+  proofReq4.id = 23;
+  proofReq5.id = 24;
+  proofReq6.id = 25;
+  proofReq7.id = 26;
+  proofReq8.id = 27;
+  proofReq9.id = 28;
+
+  proofReq1.query.credentialSubject.documentType['$lte'] = 100;
+  proofReq2.query.credentialSubject.documentType['$lte'] = 101;
+  proofReq3.query.credentialSubject.documentType['$lte'] = 102;
+  proofReq4.query.credentialSubject.documentType['$lte'] = 103;
+  proofReq5.query.credentialSubject.documentType['$lte'] = 104;
+  proofReq6.query.credentialSubject.documentType['$lte'] = 105;
+  proofReq7.query.credentialSubject.documentType['$lte'] = 106;
+  proofReq8.query.credentialSubject.documentType['$lte'] = 107;
+  proofReq9.query.credentialSubject.documentType['$lte'] = 108;
+
+
+  let t0 = performance.now();
+  await proofService.generateProof(proofReq0, userDID);
+  let t1 = performance.now();
+  console.log(`Call generateProof with 1 request took ${t1 - t0} milliseconds.`);
+
+  t0 = performance.now();
+  const proof20 = proofService.generateProof(proofReq0, userDID);
+  const proof21 = proofService.generateProof(proofReq1, userDID);
+  const proof22 = proofService.generateProof(proofReq2, userDID);
+  await Promise.all([proof20, proof21, proof22]);
+  t1 = performance.now();
+  console.log(`Call generateProof with 3 requests took ${t1 - t0} milliseconds.`);
+
+  t0 = performance.now();
+  const proof0 = proofService.generateProof(proofReq0, userDID);
+  const proof1 = proofService.generateProof(proofReq1, userDID);
+  const proof2 = proofService.generateProof(proofReq2, userDID);
+  const proof3 = proofService.generateProof(proofReq3, userDID);
+  const proof4 = proofService.generateProof(proofReq4, userDID);
+  const proof5 = proofService.generateProof(proofReq5, userDID);
+  const proof6 = proofService.generateProof(proofReq6, userDID);
+  const proof7 = proofService.generateProof(proofReq7, userDID);
+  const proof8 = proofService.generateProof(proofReq8, userDID);
+  const proof9 = proofService.generateProof(proofReq9, userDID);
+  await Promise.all([proof0, proof1, proof2, proof3, proof4, proof5, proof6, proof7, proof8, proof9]);
+  t1 = performance.now();
+  console.log(`Call generateProof with 10 requests took ${t1 - t0} milliseconds.`);
+}
+
 async function main(choice: string) {
   switch (choice) {
     case 'identityCreation':
@@ -1029,6 +1280,12 @@ async function main(choice: string) {
 
     case 'handleAuthRequestV3CircuitsBetaStateTransition':
       await handleAuthRequestV3CircuitsBetaStateTransition();
+      break;
+    case 'benchmarkHandleAuthRequest':
+      await benchmarkHandleAuthRequest();
+      break;
+    case 'benchmarkHandleGenerateProof':
+      await benchmarkGenerateProof();
       break;
 
     default:
