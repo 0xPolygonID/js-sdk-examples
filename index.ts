@@ -1002,11 +1002,11 @@ async function benchmarkHandleAuthRequest() {
     circuitStorage
   );
 
-  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
+  const { did: userDID } = await identityWallet.createIdentity({
     ...defaultIdentityCreationOptions
   });
 
-  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+  const { did: issuerDID } =
     await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
   const credentialRequest = createKYCAgeCredential(userDID);
@@ -1016,7 +1016,7 @@ async function benchmarkHandleAuthRequest() {
 
   const proofReq0: ZeroKnowledgeProofRequest = {
     id: 19,
-    circuitId: CircuitId.AtomicQueryV3,
+    circuitId: CircuitId.AtomicQuerySigV2,
     query: {
       allowedIssuers: ['*'],
       proofType: ProofType.BJJSignature,
@@ -1025,7 +1025,7 @@ async function benchmarkHandleAuthRequest() {
         'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
       credentialSubject: {
         documentType: {
-          $lte: 99
+          $lt: 200
         }
       }
     }
@@ -1051,15 +1051,15 @@ async function benchmarkHandleAuthRequest() {
   proofReq8.id = 27;
   proofReq9.id = 28;
 
-  proofReq1.query.credentialSubject.documentType['$lte'] = 100;
-  proofReq2.query.credentialSubject.documentType['$lte'] = 101;
-  proofReq3.query.credentialSubject.documentType['$lte'] = 102;
-  proofReq4.query.credentialSubject.documentType['$lte'] = 103;
-  proofReq5.query.credentialSubject.documentType['$lte'] = 104;
-  proofReq6.query.credentialSubject.documentType['$lte'] = 105;
-  proofReq7.query.credentialSubject.documentType['$lte'] = 106;
-  proofReq8.query.credentialSubject.documentType['$lte'] = 107;
-  proofReq9.query.credentialSubject.documentType['$lte'] = 108;
+  proofReq1.query.credentialSubject.documentType['$lt'] = 100;
+  proofReq2.query.credentialSubject.documentType['$lt'] = 101;
+  proofReq3.query.credentialSubject.documentType['$lt'] = 102;
+  proofReq4.query.credentialSubject.documentType['$lt'] = 103;
+  proofReq5.query.credentialSubject.documentType['$lt'] = 104;
+  proofReq6.query.credentialSubject.documentType['$lt'] = 105;
+  proofReq7.query.credentialSubject.documentType['$lt'] = 106;
+  proofReq8.query.credentialSubject.documentType['$lt'] = 107;
+  proofReq9.query.credentialSubject.documentType['$lt'] = 108;
 
   const verifierDID = 'did:polygonid:polygon:mumbai:2qLWqgjWa1cGnmPwCreXuPQrfLrRrzDL1evD6AG7p7';
 
@@ -1172,7 +1172,7 @@ async function benchmarkGenerateProof() {
         'https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld',
       credentialSubject: {
         documentType: {
-          $lte: 99
+          $lt: 200
         }
       }
     }
@@ -1198,15 +1198,15 @@ async function benchmarkGenerateProof() {
   proofReq8.id = 27;
   proofReq9.id = 28;
 
-  proofReq1.query.credentialSubject.documentType['$lte'] = 100;
-  proofReq2.query.credentialSubject.documentType['$lte'] = 101;
-  proofReq3.query.credentialSubject.documentType['$lte'] = 102;
-  proofReq4.query.credentialSubject.documentType['$lte'] = 103;
-  proofReq5.query.credentialSubject.documentType['$lte'] = 104;
-  proofReq6.query.credentialSubject.documentType['$lte'] = 105;
-  proofReq7.query.credentialSubject.documentType['$lte'] = 106;
-  proofReq8.query.credentialSubject.documentType['$lte'] = 107;
-  proofReq9.query.credentialSubject.documentType['$lte'] = 108;
+  proofReq1.query.credentialSubject.documentType['$lt'] = 100;
+  proofReq2.query.credentialSubject.documentType['$lt'] = 101;
+  proofReq3.query.credentialSubject.documentType['$lt'] = 102;
+  proofReq4.query.credentialSubject.documentType['$lt'] = 103;
+  proofReq5.query.credentialSubject.documentType['$lt'] = 104;
+  proofReq6.query.credentialSubject.documentType['$lt'] = 105;
+  proofReq7.query.credentialSubject.documentType['$lt'] = 106;
+  proofReq8.query.credentialSubject.documentType['$lt'] = 107;
+  proofReq9.query.credentialSubject.documentType['$lt'] = 108;
 
 
   let t0 = performance.now();
@@ -1303,6 +1303,8 @@ async function main(choice: string) {
       await generateProofs(true);
       await handleAuthRequest(true);
       await handleAuthRequestV3CircuitsBetaStateTransition();
+      await benchmarkHandleAuthRequest();
+      await benchmarkGenerateProof();
   }
 }
 
