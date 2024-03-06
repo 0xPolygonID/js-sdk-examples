@@ -49,6 +49,7 @@ dotenv.config();
 import { MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/mongo-storage';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db } from 'mongodb';
+import { RapidSnarkProver } from './rapidsnark';
 
 const circuitsFolder = process.env.CIRCUITS_PATH as string;
 const mongoDbConnection = process.env.MONGO_DB_CONNECTION as string;
@@ -190,8 +191,13 @@ export async function initProofService(
   stateStorage: IStateStorage,
   circuitStorage: ICircuitStorage
 ): Promise<ProofService> {
+
   return new ProofService(identityWallet, credentialWallet, circuitStorage, stateStorage, {
-    ipfsGatewayURL: 'https://ipfs.io'
+    ipfsGatewayURL: 'https://ipfs.io',
+    prover: new RapidSnarkProver(
+      `/Users/cyberme/pid/js-sdk-examples/circuits`,
+      `/Users/cyberme/pid/js-sdk-examples/circuits`
+    )
   });
 }
 
