@@ -191,13 +191,12 @@ export async function initProofService(
   stateStorage: IStateStorage,
   circuitStorage: ICircuitStorage
 ): Promise<ProofService> {
-
   return new ProofService(identityWallet, credentialWallet, circuitStorage, stateStorage, {
     ipfsGatewayURL: 'https://ipfs.io',
-    prover: new RapidSnarkProver(
-      `/Users/cyberme/pid/js-sdk-examples/circuits`,
-      `/Users/cyberme/pid/js-sdk-examples/circuits`
-    )
+    // prover: new RapidSnarkProver(
+    //   `/Users/dmytro.k/Documents/work/js-sdk-examples/circuits`,
+    //   `/Users/dmytro.k/Documents/work/js-sdk-examples/circuits/lib/mac_arm64`
+    // )
   });
 }
 

@@ -1163,7 +1163,7 @@ async function benchmarkGenerateProof() {
 
   const proofReq0: ZeroKnowledgeProofRequest = {
     id: 19,
-    circuitId: CircuitId.AtomicQueryV3,
+    circuitId: CircuitId.AtomicQuerySigV2,
     query: {
       allowedIssuers: ['*'],
       proofType: ProofType.BJJSignature,
