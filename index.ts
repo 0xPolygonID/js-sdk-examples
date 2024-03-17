@@ -195,7 +195,11 @@ async function transitState() {
 
   console.log('================= push states to rhs ===================');
 
-  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  await identityWallet.publishRevocationInfoByCredentialStatusType(
+    issuerDID,
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    { rhsUrl }
+  );
 
   console.log('================= publish to blockchain ===================');
 
@@ -284,7 +288,11 @@ async function transitStateThirdPartyDID() {
 
   console.log('================= third party: push states to rhs ===================');
 
-  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  await identityWallet.publishRevocationInfoByCredentialStatusType(
+    issuerDID,
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    { rhsUrl }
+  );
 
   console.log('================= publish to blockchain ===================');
 
@@ -345,7 +353,11 @@ async function generateProofs(useMongoStore = false) {
 
   console.log('================= push states to rhs ===================');
 
-  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  await identityWallet.publishRevocationInfoByCredentialStatusType(
+    issuerDID,
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    { rhsUrl }
+  );
 
   console.log('================= publish to blockchain ===================');
 
@@ -390,11 +402,14 @@ async function generateProofs(useMongoStore = false) {
     credentialRequest
   );
 
-  const { proof: proofMTP } = await proofService.generateProof(proofReqMtp, userDID);
+  const { proof: proofMTP, pub_signals: pub_signalsMTP } = await proofService.generateProof(
+    proofReqMtp,
+    userDID
+  );
 
   console.log(JSON.stringify(proofMTP));
   const mtpProofOk = await proofService.verifyProof(
-    { proof, pub_signals },
+    { proof: proofMTP, pub_signals: pub_signalsMTP },
     CircuitId.AtomicQueryMTPV2
   );
   console.log('valid: ', mtpProofOk);
@@ -454,7 +469,11 @@ async function handleAuthRequest(useMongoStore = false) {
 
   console.log('================= push states to rhs ===================');
 
-  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  await identityWallet.publishRevocationInfoByCredentialStatusType(
+    issuerDID,
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    { rhsUrl }
+  );
 
   console.log('================= publish to blockchain ===================');
 
@@ -849,7 +868,11 @@ async function handleAuthRequestV3CircuitsBetaStateTransition() {
   const res = await identityWallet.addCredentialsToMerkleTree([issuedCred], issuerDID);
   console.log('=============== added to merkle tree ===============');
 
-  await identityWallet.publishStateToRHS(issuerDID, rhsUrl);
+  await identityWallet.publishRevocationInfoByCredentialStatusType(
+    issuerDID,
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    { rhsUrl }
+  );
   console.log('=============== published to rhs ===============');
 
   const ethSigner = new ethers.Wallet(walletKey, (dataStorage.states as EthStateStorage).provider);
