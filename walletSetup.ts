@@ -41,7 +41,9 @@ import {
   PackageManager,
   AgentResolver,
   FSCircuitStorage,
-  AbstractPrivateKeyStore
+  AbstractPrivateKeyStore,
+  CredentialStatusPublisherRegistry,
+  Iden3SmtRhsCredentialStatusPublisher
 } from '@0xpolygonid/js-sdk';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -126,7 +128,15 @@ export async function initIdentityWallet(
   const kms = new KMS();
   kms.registerKeyProvider(KmsKeyType.BabyJubJub, bjjProvider);
 
-  return new IdentityWallet(kms, dataStorage, credentialWallet);
+  const credentialStatusPublisherRegistry = new CredentialStatusPublisherRegistry();
+  credentialStatusPublisherRegistry.register(
+    CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
+    new Iden3SmtRhsCredentialStatusPublisher()
+  );
+
+  return new IdentityWallet(kms, dataStorage, credentialWallet, {
+    credentialStatusPublisherRegistry
+  });
 }
 
 export async function initInMemoryDataStorageAndWallets(config: {
