@@ -9,7 +9,7 @@
     ```
 
 2. Copy over the `.env.example` into `.env`  
-  You'll need to fill in `RPC_URL` and `WALLET_KEY` with your own endpoint and key respectively. The default env vars assume you will be using the Polygon Mumbai network.
+  You'll need to fill in `RPC_URL` and `WALLET_KEY` with your own endpoint and key respectively. The default env vars assume you will be using the Polygon Amoy network.
 
     ```bash
     cp .env.example .env
@@ -20,11 +20,11 @@
     ```bash
     # reverse hash service url
     RHS_URL="https://rhs-staging.polygonid.me" 
-    # state v2 contract address in the mumbai network
-    CONTRACT_ADDRESS="0x134B1BE34911E39A8397ec6289782989729807a4"
+    # state v2 contract address in the amoy network
+    CONTRACT_ADDRESS="0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124"
     # path to the circuits folder
     CIRCUITS_PATH="./circuits" 
-    # url to polygon mumbai network rpc node
+    # url to polygon amoy network rpc node
     RPC_URL="" 
     # key in hex format with matic balance
     WALLET_KEY="" 

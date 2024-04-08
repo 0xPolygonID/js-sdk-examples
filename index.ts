@@ -38,9 +38,9 @@ const defaultNetworkConnection = {
 };
 
 export const defaultIdentityCreationOptions: IdentityCreationOptions = {
-  method: core.DidMethod.Iden3,
+  method: core.DidMethod.PolygonId,
   blockchain: core.Blockchain.Polygon,
-  networkId: core.NetworkId.Mumbai,
+  networkId: core.NetworkId.Amoy,
   revocationOpts: {
     type: CredentialStatusType.Iden3ReverseSparseMerkleTreeProof,
     id: rhsUrl
@@ -221,15 +221,15 @@ async function transitStateThirdPartyDID() {
     methodByte: 0b1000_0001,
     blockchain: 'linea',
     network: 'test',
-    networkFlag: 0b01000000 | 0b00000001,
-    chainId: 11155111
+    networkFlag: 0b01000001 | 0b00000001,
+    chainId: 11155112
   });
 
   core.registerDidMethodNetwork({
     method: 'iden3',
     blockchain: 'linea',
     network: 'test',
-    networkFlag: 0b11000000 | 0b00000011
+    networkFlag: 0b11000001 | 0b00000011
   });
 
   const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
@@ -1059,7 +1059,6 @@ async function main(choice: string) {
       await identityCreation();
       await issueCredential();
       await transitState();
-      await transitStateThirdPartyDID();
       await generateProofs();
       await handleAuthRequest();
       await handleAuthRequestWithProfiles();
