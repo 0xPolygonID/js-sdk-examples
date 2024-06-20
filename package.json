@@ -12,7 +12,7 @@
     "format": "prettier --write \"*.ts\" "
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT or Apache-2.0",
   "peerDependencies": {
     "@0xpolygonid/js-sdk": "1.10.3",
     "@0xpolygonid/mongo-storage": "github:0xPolygonID/nodejs-storage-example",
