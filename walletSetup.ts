@@ -66,9 +66,9 @@ export function initInMemoryDataStorage({
   conf.contractAddress = contractAddress;
   conf.url = rpcUrl;
 
-  // change here priority fees in case transaction is stuck or processing too long
-  // conf.maxPriorityFeePerGas = '250000000000' - 250 gwei
-  // conf.maxFeePerGas = '250000000000' - 250 gwei
+  // Increase these values to ensure the transaction is not underpriced
+  conf.maxPriorityFeePerGas = '30000000000' // 30 gwei  
+  conf.maxFeePerGas = '100000000000' // 100 gwei
 
   const dataStorage = {
     credential: new CredentialStorage(new InMemoryDataSource<W3CCredential>()),
@@ -78,7 +78,7 @@ export function initInMemoryDataStorage({
     ),
     mt: new InMemoryMerkleTreeStorage(40),
 
-    states: new EthStateStorage(defaultEthConnectionConfig)
+    states: new EthStateStorage(conf)  // Use the modified conf here
   };
 
   return dataStorage;
