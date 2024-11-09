@@ -311,40 +311,79 @@ async function transitStateThirdPartyDID() {
 }
 
 async function generateProofs(useMongoStore = false) {
+async function generateProofs(useMongoStore = false) {
+  console.log('=============== generate proofs ===============');
   console.log('=============== generate proofs ===============');
 
+
+  let dataStorage, credentialWallet, identityWallet;
   let dataStorage, credentialWallet, identityWallet;
   if (useMongoStore) {
+  if (useMongoStore) {
+    ({ dataStorage, credentialWallet, identityWallet } = await initMongoDataStorageAndWallets(
     ({ dataStorage, credentialWallet, identityWallet } = await initMongoDataStorageAndWallets(
       defaultNetworkConnection
-    ));
-  } else {
-    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
       defaultNetworkConnection
     ));
+    ));
+  } else {
+  } else {
+    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+    ({ dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
+      defaultNetworkConnection
+      defaultNetworkConnection
+    ));
+    ));
+  }
   }
 
+
+  const circuitStorage = await initCircuitStorage();
   const circuitStorage = await initCircuitStorage();
   const proofService = await initProofService(
+  const proofService = await initProofService(
+    identityWallet,
     identityWallet,
     credentialWallet,
+    credentialWallet,
+    dataStorage.states,
     dataStorage.states,
     circuitStorage
+    circuitStorage
+  );
   );
 
+
+  const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
   const { did: userDID, credential: authBJJCredentialUser } = await identityWallet.createIdentity({
     ...defaultIdentityCreationOptions
+    ...defaultIdentityCreationOptions
+  });
   });
 
+
+  console.log('=============== user did ===============');
   console.log('=============== user did ===============');
   console.log(userDID.string());
+  console.log(userDID.string());
+
 
   const { did: issuerDID, credential: issuerAuthBJJCredential } =
+  const { did: issuerDID, credential: issuerAuthBJJCredential } =
+    await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
     await identityWallet.createIdentity({ ...defaultIdentityCreationOptions });
 
+
   const credentialRequest = createKYCAgeCredential(userDID);
+  const credentialRequest = createKYCAgeCredential(userDID);
+  // Initialize merkle tree for issuer DID
+  await identityWallet.getDIDTreeModel(issuerDID);
+
+  // Issue credential
   const credential = await identityWallet.issueCredential(issuerDID, credentialRequest);
 
+
+  await dataStorage.credential.saveCredential(credential);
   await dataStorage.credential.saveCredential(credential);
 
   console.log('================= generate Iden3SparseMerkleTreeProof =======================');
