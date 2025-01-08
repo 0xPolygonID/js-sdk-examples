@@ -8,6 +8,13 @@
     ./dl_circuits.sh
     ```
 
+- Polygon Amoy or Main RPC - You can get one in any of the providers of this list
+  - [Chainstack](https://chainstack.com/)
+  - [Ankr](https://ankr.com/)
+  - [QuickNode](https://quicknode.com/)
+  - [Alchemy](https://www.alchemy.com/)
+  - [Infura](https://www.infura.io/)
+
 2. Copy over the `.env.example` into `.env`  
   You'll need to fill in `RPC_URL` and `WALLET_KEY` with your own endpoint and key respectively. The default env vars assume you will be using the Polygon Amoy network.
 
@@ -30,7 +37,8 @@
     WALLET_KEY="" 
     # MongoDB connection string, uses in memory Mongo server if not specified
     MONGO_DB_CONNECTION=""
-
+    # Chain iden
+    CHAIN_ID=""
     ```
 
 3. Install dependencies

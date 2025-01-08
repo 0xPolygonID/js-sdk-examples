@@ -34,7 +34,8 @@ const walletKey = process.env.WALLET_KEY as string;
 
 const defaultNetworkConnection = {
   rpcUrl: process.env.RPC_URL as string,
-  contractAddress: process.env.CONTRACT_ADDRESS as string
+  contractAddress: process.env.CONTRACT_ADDRESS as string,
+  chainId: parseInt(process.env.CHAIN_ID as string)
 };
 
 export const defaultIdentityCreationOptions: IdentityCreationOptions = {
@@ -203,7 +204,7 @@ async function transitState() {
 
   console.log('================= publish to blockchain ===================');
 
-  const ethSigner = new ethers.Wallet(walletKey, (dataStorage.states as EthStateStorage).provider);
+  const ethSigner = new ethers.Wallet(walletKey, dataStorage.states.getRpcProvider());
   const txId = await proofService.transitState(
     issuerDID,
     res.oldTreeState,
@@ -235,7 +236,8 @@ async function transitStateThirdPartyDID() {
   const { dataStorage, credentialWallet, identityWallet } = await initInMemoryDataStorageAndWallets(
     {
       rpcUrl: process.env.THIRD_PARTY_RPC_URL as string,
-      contractAddress: process.env.THIRD_PARTY_CONTRACT_ADDRESS as string
+      contractAddress: process.env.THIRD_PARTY_CONTRACT_ADDRESS as string,
+      chainId: parseInt(process.env.THIRD_PARTY_CHAIN_ID as string)
     }
   );
 
@@ -298,7 +300,7 @@ async function transitStateThirdPartyDID() {
 
   const ethSigner = new ethers.Wallet(
     process.env.THIRD_PARTY_WALLET_KEY as string,
-    (dataStorage.states as EthStateStorage).provider
+    dataStorage.states.getRpcProvider()
   );
   const txId = await proofService.transitState(
     issuerDID,
@@ -361,7 +363,7 @@ async function generateProofs(useMongoStore = false) {
 
   console.log('================= publish to blockchain ===================');
 
-  const ethSigner = new ethers.Wallet(walletKey, (dataStorage.states as EthStateStorage).provider);
+  const ethSigner = new ethers.Wallet(walletKey, dataStorage.states.getRpcProvider());
   const txId = await proofService.transitState(
     issuerDID,
     res.oldTreeState,
@@ -477,7 +479,7 @@ async function handleAuthRequest(useMongoStore = false) {
 
   console.log('================= publish to blockchain ===================');
 
-  const ethSigner = new ethers.Wallet(walletKey, (dataStorage.states as EthStateStorage).provider);
+  const ethSigner = new ethers.Wallet(walletKey, dataStorage.states.getRpcProvider());
   const txId = await proofService.transitState(
     issuerDID,
     res.oldTreeState,
@@ -775,8 +777,6 @@ async function handleAuthRequestNoIssuerStateTransition() {
     credentialRequest
   );
 
-  console.log('=================  credential auth request ===================');
-
   const authRequest: AuthorizationRequestMessage = {
     id: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
     thid: 'fe6354fe-3db2-48c2-a779-e39c2dda8d90',
@@ -790,7 +790,6 @@ async function handleAuthRequestNoIssuerStateTransition() {
       reason: 'verify age'
     }
   };
-  console.log(JSON.stringify(authRequest));
 
   const authRawRequest = new TextEncoder().encode(JSON.stringify(authRequest));
 
@@ -875,7 +874,7 @@ async function handleAuthRequestV3CircuitsBetaStateTransition() {
   );
   console.log('=============== published to rhs ===============');
 
-  const ethSigner = new ethers.Wallet(walletKey, (dataStorage.states as EthStateStorage).provider);
+  const ethSigner = new ethers.Wallet(walletKey, dataStorage.states.getRpcProvider());
 
   const txId = await proofService.transitState(
     issuerDID,
@@ -989,7 +988,6 @@ async function handleAuthRequestV3CircuitsBetaStateTransition() {
     callbackUrl: 'http://localhost:8080/callback?id=1234442-123123-123123',
     reason: 'reason',
     message: 'mesage',
-    did_doc: {},
     scope: proofReqs
   };
 

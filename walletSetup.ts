@@ -52,19 +52,26 @@ import { MongoDataSourceFactory, MerkleTreeMongodDBStorage } from '@0xpolygonid/
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient, Db } from 'mongodb';
 
+export type NetworkConfig = {
+  contractAddress: string;
+  rpcUrl: string;
+  chainId: number;
+};
+
 const circuitsFolder = process.env.CIRCUITS_PATH as string;
 const mongoDbConnection = process.env.MONGO_DB_CONNECTION as string;
 
 export function initInMemoryDataStorage({
   contractAddress,
-  rpcUrl
-}: {
-  contractAddress: string;
-  rpcUrl: string;
-}): IDataStorage {
-  const conf: EthConnectionConfig = defaultEthConnectionConfig;
-  conf.contractAddress = contractAddress;
-  conf.url = rpcUrl;
+  rpcUrl,
+  chainId
+}: NetworkConfig): IDataStorage {
+  const conf: EthConnectionConfig = {
+    ...defaultEthConnectionConfig,
+    contractAddress,
+    url: rpcUrl,
+    chainId
+  };
 
   // change here priority fees in case transaction is stuck or processing too long
   // conf.maxPriorityFeePerGas = '250000000000' - 250 gwei
@@ -78,7 +85,7 @@ export function initInMemoryDataStorage({
     ),
     mt: new InMemoryMerkleTreeStorage(40),
 
-    states: new EthStateStorage(defaultEthConnectionConfig)
+    states: new EthStateStorage(conf)
   };
 
   return dataStorage;
@@ -86,11 +93,9 @@ export function initInMemoryDataStorage({
 
 export async function initMongoDataStorage({
   rpcUrl,
-  contractAddress
-}: {
-  contractAddress: string;
-  rpcUrl: string;
-}): Promise<IDataStorage> {
+  contractAddress,
+  chainId
+}: NetworkConfig): Promise<IDataStorage> {
   let url = mongoDbConnection;
   if (!url) {
     const mongodb = await MongoMemoryServer.create();
@@ -100,9 +105,12 @@ export async function initMongoDataStorage({
   await client.connect();
   const db: Db = client.db('mongodb-sdk-example');
 
-  const conf: EthConnectionConfig = defaultEthConnectionConfig;
-  conf.contractAddress = contractAddress;
-  conf.url = rpcUrl;
+  const conf: EthConnectionConfig = {
+    ...defaultEthConnectionConfig,
+    chainId,
+    contractAddress,
+    url: rpcUrl
+  };
 
   const dataStorage = {
     credential: new CredentialStorage(
@@ -113,10 +121,10 @@ export async function initMongoDataStorage({
       await MongoDataSourceFactory<Profile>(db, 'profile')
     ),
     mt: await MerkleTreeMongodDBStorage.setup(db, 40),
-    states: new EthStateStorage(defaultEthConnectionConfig)
+    states: new EthStateStorage(conf)
   };
 
-  return dataStorage as unknown as IDataStorage;
+  return dataStorage;
 }
 
 export async function initIdentityWallet(
@@ -139,10 +147,7 @@ export async function initIdentityWallet(
   });
 }
 
-export async function initInMemoryDataStorageAndWallets(config: {
-  contractAddress: string;
-  rpcUrl: string;
-}) {
+export async function initInMemoryDataStorageAndWallets(config: NetworkConfig) {
   const dataStorage = initInMemoryDataStorage(config);
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
@@ -156,10 +161,7 @@ export async function initInMemoryDataStorageAndWallets(config: {
   };
 }
 
-export async function initMongoDataStorageAndWallets(config: {
-  contractAddress: string;
-  rpcUrl: string;
-}) {
+export async function initMongoDataStorageAndWallets(config: NetworkConfig) {
   const dataStorage = await initMongoDataStorage(config);
   const credentialWallet = await initCredentialWallet(dataStorage);
   const memoryKeyStore = new InMemoryPrivateKeyStore();
