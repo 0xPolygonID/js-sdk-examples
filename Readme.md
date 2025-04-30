@@ -2,7 +2,7 @@
 
 ## Setup
 
-1. Download the zk circuits into `./circuits` by running `dl_circuits.sh`. This will download the latest files from `https://iden3-circuits-bucket.s3.eu-west-1.amazonaws.com/latest.zip`
+1. Download the zk circuits into `./circuits` by running `dl_circuits.sh`. This will download the latest files from `https://circuits.privado.id/latest.zip`
 
     ```bash
     ./dl_circuits.sh
